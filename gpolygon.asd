@@ -10,5 +10,5 @@
                parenscript
                cl-fad)
   :components
-  ((:file "src/package")
-   (:file "src/gpolygon" :depends-on ("src/package"))))
+  ((:file "package")
+   (:file "gpolygon" :depends-on ("package"))))
