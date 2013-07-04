@@ -27,20 +27,8 @@
 (defmethod draw ((gp gpoly)) (mapc #'draw (genome gp)))
 
 (defmethod phenome ((gp gpoly))
-  ;; The phenotype of these objects is the actual image.
   (with-canvas (:width width :height height)
     (draw gp) (vecto::image vecto::*graphics-state*)))
-
-(defmethod distance ((image-a png) (image-b png))
-  ;; Return numerical distance between IMAGE-A and IMAGE-B.
-  (let ((data-a (image-data image-a))
-        (data-b (image-data image-b))
-        (distance 0))
-    (assert (= (length data-a) (length data-b)) (data-a data-b)
-            "Can't return distance between images of different size.")
-    (loop :for i :below (length data-a) :do
-       (incf distance (abs (- (aref data-a i) (aref data-b i)))))
-    distance))
 
 
 ;;; Usage
