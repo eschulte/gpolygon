@@ -7,4 +7,4 @@
         :cl-who
         :parenscript
         :cl-fad)
-  (:shadow :bind :switch :copy-stream :copy-file))
+  (:shadow :bind :switch))

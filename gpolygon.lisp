@@ -1,16 +1,19 @@
 (in-package :gpolygon)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (enable-curry-compose-reader-macros))
 
 ;; so we can put js strings into our HTML code
 (setf *js-string-delimiter* #\')
 
-(start (make-instance 'hunchentoot:easy-acceptor :port 4242))
+(eval-when (:execute)
+  (start (make-instance 'hunchentoot:easy-acceptor :port 4242)))
 
-(defvar width 198 "Image width.")
-(defvar height 300 "Image height.")
+(defvar width 216 "Image width.")
+(defvar height 162 "Image height.")
 
 
 ;;; Display
-(define-easy-handler (main :uri "/main") ()
+(define-easy-handler (main :uri "/") ()
   (with-html-output-to-string (s)
     (:html
      (:head
@@ -20,7 +23,7 @@
                       (defvar target-img (new (-image)))
                       (setf (@ target-img src)
                             ;; need to serve the image from this server
-                            "http://cs.unm.edu/~eschulte/data/dock.png")
+                            "/eyjafjallajokull.png")
 
                       (defvar target-cnv nil)
 
@@ -53,20 +56,17 @@
                         (let* ((canvas (chain document (get-element-by-id id)))
                                (w (@ canvas width))
                                (h (@ canvas height)))
-                          (try (chain canvas (get-context "2d")
-                                      (get-image-data 0 0 w h)
-                                      data)
-                               (:catch (e)
-                                 (alert
-                                  "Firefox is stupid about foreign images")))))
+                          (chain canvas (get-context "2d")
+                                 (get-image-data 0 0 w h)
+                                 data)))
 
                       (defun score ()
                         (let ((data-current (data "current"))
                               (data-target (data "target"))
                               (difference 0))
                           (dotimes (i (@ data-current length))
-                            (incf difference (abs (- (@ data-current i)
-                                                     (@ target-current i)))))
+                            (incf difference (abs (- (getprop data-current i)
+                                                     (getprop data-target i)))))
                           (alert (+ "difference is " difference))))
                       ))))
      (:body :onload (ps (setup) (draw '((10 10) (25 10) (50 50) (10 25))))
@@ -77,3 +77,9 @@
                                        :style "border: 1px solid black;"))
                          (:td (:canvas :id "current" :width width :height height
                                        :style "border: 1px solid black;"))))))))
+
+(define-easy-handler (eyjafjallajokull :uri "/eyjafjallajokull.png") ()
+  (setf (content-type*) "image/png")
+  (with-open-file (in "data/eyjafjallajokull.png"
+                      :element-type '(unsigned-byte 8))
+    (cl-fad:copy-stream in (send-headers))))
