@@ -19,6 +19,7 @@
                       (defvar current-cnv nil)
                       (defvar target-img (new (-image)))
                       (setf (@ target-img src)
+                            ;; need to serve the image from this server
                             "http://cs.unm.edu/~eschulte/data/dock.png")
 
                       (defvar target-cnv nil)
@@ -47,10 +48,31 @@
                       (setf (@ target-img onload)
                             (lambda () (setup)
                                (chain target-cnv (draw-image target-img 0 0))))
+                      
+                      (defun data (id)
+                        (let* ((canvas (chain document (get-element-by-id id)))
+                               (w (@ canvas width))
+                               (h (@ canvas height)))
+                          (try (chain canvas (get-context "2d")
+                                      (get-image-data 0 0 w h)
+                                      data)
+                               (:catch (e)
+                                 (alert
+                                  "Firefox is stupid about foreign images")))))
 
+                      (defun score ()
+                        (let ((data-current (data "current"))
+                              (data-target (data "target"))
+                              (difference 0))
+                          (dotimes (i (@ data-current length))
+                            (incf difference (abs (- (@ data-current i)
+                                                     (@ target-current i)))))
+                          (alert (+ "difference is " difference))))
                       ))))
      (:body :onload (ps (setup) (draw '((10 10) (25 10) (50 50) (10 25))))
-            (:table (:tr (:td "target image") (:td "current"))
+            (:table (:tr (:td "target image")
+                         (:td "current " (:a :href "#" :onclick (ps (score))
+                                             "score")))
                     (:tr (:td (:canvas :id "target" :width width :height height
                                        :style "border: 1px solid black;"))
                          (:td (:canvas :id "current" :width width :height height
