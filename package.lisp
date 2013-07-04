@@ -3,6 +3,8 @@
         :alexandria
         :metabang-bind
         :curry-compose-reader-macros
-        :zpng
-        :vecto)
-  (:shadow :rotate))
+        :hunchentoot
+        :cl-who
+        :parenscript
+        :cl-fad)
+  (:shadow :bind :switch :copy-stream :copy-file))

@@ -5,8 +5,10 @@
   :depends-on (alexandria
                metabang-bind
                curry-compose-reader-macros
-               vecto
-               zpng)
+               hunchentoot
+               cl-who
+               parenscript
+               cl-fad)
   :components
-  ((:file "package")
-   (:file "gpolygon" :depends-on ("package"))))
+  ((:file "src/package")
+   (:file "src/gpolygon" :depends-on ("src/package"))))
