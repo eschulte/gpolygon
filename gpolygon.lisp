@@ -1,6 +1,5 @@
 (in-package :gpolygon)
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (enable-curry-compose-reader-macros)
   (setf *js-string-delimiter* #\"))
 
 (defun serve ()
@@ -11,13 +10,12 @@
 (defvar height 162 "Image height.")
 
 
-;;; Display
+;;; Pages
 (define-easy-handler (main :uri "/") ()
   (with-html-output-to-string (s)
     (:html
      (:head (:script :type "text/javascript" :src "/evolve.js"))
-     (:body :onload (ps (setup))
-            (:table (:tr (:th "target image") (:th "current "))
+     (:body (:table (:tr (:th "target image") (:th "current "))
                     (:tr (:td (:canvas :id "target" :width width :height height
                                        :style "border: 1px solid black;"))
                          (:td (:canvas :id "current" :width width :height height
@@ -49,14 +47,13 @@
 (defvar target-img (new (-image)))
 
 
-;;; Functions on page elements
+;;; Page elements
 (setf (@ target-img src) "/eyjafjallajokull.png")
 (setf (@ target-img onload)
       (lambda () (setup)
          (chain t-cnv (get-context "2d") (draw-image target-img 0 0))))
 
 (defun setup ()
-  "Setup the page by assigning both canvas contexts."
   (setf c-cnv (chain document (get-element-by-id "current")))
   (setf t-cnv (chain document (get-element-by-id "target"))))
 
@@ -74,9 +71,8 @@
     (setf (@ ctx fill-style) (draw-color (getprop poly :color)))
     (chain ctx (begin-path))
     (chain ctx (move-to (@ head 0) (@ head 1)))
-    (chain points ;; a javascript map, not a CL map
-           (map (lambda (point)
-                  (chain ctx (line-to (@ point 0) (@ point 1))))))
+    (chain points (map (lambda (point)
+                         (chain ctx (line-to (@ point 0) (@ point 1))))))
     (chain ctx (close-path))
     (chain ctx (fill))))
 
@@ -86,7 +82,6 @@
            (get-image-data 0 0 (@ canvas width) (@ canvas height)) data)))
 
 (defun score ()
-  "Return the difference between the current and target canvases."
   (let ((data-current (data "current"))
         (data-target (data "target"))
         (difference 0))
@@ -100,14 +95,10 @@
 (defun do-clear () (clear))
 
 
-;;; Functions on individuals
-;;
-;; Every individual is a hash with fitness and a genome array of
-;; polygons.  A polygon is a color and a set of verticies.
-;;
+;;; Individuals
 (defvar evals 0)
 (defvar max-poly-length 6)
-(defvar max-genome-start-length 64)
+(defvar max-genome-start-length 32)
 
 (defun compose () (list)) ;; needed for loop macro
 (defun random-ind (list) (random (length list)))
@@ -162,58 +153,38 @@
   ind)
 
 
-;; Evolution functions on populations
+;; Populations
 (defvar running t)
 (defvar pop (make-array))
-(defvar pop-size 256)
-(defvar tournament-size 2)
+(defvar pop-size 512)
+(defvar tournament-size 4)
 (defvar disp-update-delay 2 "Delay in milliseconds to allow display to update.")
 
 (defun fit-sort (a b) (- (getprop a :fit) (getprop b :fit)))
-(defun mean (list)
-  (let ((total 0))
-    (loop :for el :in list :do (incf total el))
-    (/ total (length list))))
+(defun mean (l) (/ (loop :for el :in l :sum (incf total el)) (length l)))
 
 (defun tournament ()
-  ;; for now we can just assume a tournament size of two
   (chain (loop :for i :from 1 :to tournament-size :collect
             (random-elt (chain window pop)))
          (sort fit-sort) 0))
 
 (defun pop-helper (n)
-  (when (> n 0)
+  (when (and running (> n 0))
     (chain window pop (push (evaluate (new-ind))))
     (set-timeout (lambda () (pop-helper (- n 1))) disp-update-delay)))
-
-(defun populate ()
-  (set-timeout (lambda () (pop-helper pop-size)) disp-update-delay))
-
-(defun show-scores ()
-  (let ((scores ""))
-    (dotimes (i pop-size)
-      (setf scores (+ scores " " (chain (getprop (chain window pop) i) fit))))
-    (alert scores)))
+(defun populate () (set-timeout (lambda () (pop-helper pop-size)) disp-update-delay))
 
 (defun evolve-helper ()
   (when running
-    ;; crossover or mutation
-    (let ((candidate (case (random-elt '(:crossover :mutation))
-                       (:crossover (crossover (tournament) (tournament)))
-                       (:mutation (mutate (copy-ind (tournament)))))))
-      ;; evaluate
-      (evaluate candidate)
-      ;; replace a random individual in the population
-      (chain window pop (sort fit-sort) (splice -1 1 candidate)))
-    ;; recur
-    (set-timeout (lambda () (evolve-helper)) disp-update-delay)))
-
-(defun evolve ()
-  (setf running t)
-  (set-timeout (lambda () (evolve-helper)) disp-update-delay))
+    (chain window pop (sort fit-sort)
+           (splice -1 1 (evaluate
+                         (mutate (if (= 0 (random 2))
+                                     (copy-ind (tournament))
+                                     (crossover (tournament) (tournament)))))))
+    (set-timeout evolve-helper disp-update-delay)))
+(defun evolve () (setf running t) (set-timeout evolve-helper disp-update-delay))
 
 (defun stats ()
-  "Display stats on the population."
   (let ((scores (chain window pop
                        (sort fit-sort) (map (lambda (it) (getprop it :fit))))))
     (setf
@@ -223,4 +194,6 @@
     scores))
 
 (defun stop () (setf running false))
-(defun best () (stop) (clear) (evaluate (chain window pop (sort fit-sort) 0)))))
+(defun best ()
+  (stop) (clear)
+  (chain window pop (sort fit-sort) 0 :genome (map draw)))))
