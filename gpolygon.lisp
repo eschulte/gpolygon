@@ -27,8 +27,7 @@
             (:a :href "#" :onclick (ps (add-individual)) "add individual") :br
             (:a :href "#" :onclick (ps (do-clear)) "clear") (str " ")
             (:a :href "#" :onclick (ps (alert (score))) "score") :br
-            (:a :href "#" :onclick (ps (populate show-scores)) "populate")
-            (:div :id "population")))))
+            (:a :href "#" :onclick (ps (populate show-scores)) "populate")))))
 
 (define-easy-handler (eyjafjallajokull :uri "/eyjafjallajokull.png") ()
   (setf (content-type*) "image/png")

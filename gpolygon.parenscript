@@ -90,20 +90,21 @@
 
 
 ;; Evolution functions on populations
+(defvar pop (make-array))
 (defvar pop-size 124)
 
-(defun pop-helper (n results cb)
+(defun pop-helper (n cb)
   (if (> n 0)
-      (set-timeout
-       (lambda () (pop-helper (- n 1) (append (list (evaluate (new-individual))) results) cb))
-       20)
-      (cb results)))
+      (progn
+        (chain window pop (push (evaluate (new-individual))))
+        (set-timeout (lambda () (pop-helper (- n 1) cb)) 20))
+      (cb)))
 
 (defun populate (cb)
-  (set-timeout (lambda () (pop-helper pop-size (make-array) cb)) 20))
+  (set-timeout (lambda () (pop-helper pop-size cb)) 20))
 
-(defun show-scores (pop)
+(defun show-scores ()
   (let ((scores ""))
     (dotimes (i pop-size)
-      (setf scores (+ scores " " (chain (getprop pop i) fit))))
+      (setf scores (+ scores " " (chain (getprop (chain window pop) i) fit))))
     (alert scores)))
