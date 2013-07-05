@@ -120,18 +120,17 @@
 (defun copy-ind (ind) (create fit nil genome (chain ind :genome (slice 0))))
 
 (defun evaluate (ind)
-  (incf evals)
-  (clear)
-  (chain ind :genome (map draw))
+  (incf evals) (clear) (chain ind :genome (map draw))
   (setf (getprop ind :fit) (score))
   ind)
 
-(defun crossover (a b)
-  (let* ((ga (chain a :genome))
-         (gb (chain b :genome))
-         (pt (min (length ga) (length gb))))
-    (create fit nil genome
-            (append (chain ga (slice 0 pt)) (chain gb (slice pt))))))
+(defun crossover (a b) ;; two point crossover
+  (let* ((ag (chain a :genome)) (bg (chain b :genome))
+         (a-rng (list (random-ind ag) (random-ind ag)))
+         (b-rng (list (random-ind bg) (random-ind bg))))
+    (create fit nil genome (append (chain ag (slice 0 (min a-rng)))
+                                   (chain bg (slice (min b-rng) (max b-rng)))
+                                   (chain ag (slice (max a-rng)))))))
 
 (defun tweak (lst)
   (flet ((tweak-num (n) (+ (random n) (/ n 2))))
@@ -145,9 +144,11 @@
 
 (defun mutate (ind)
   (let ((i (random-ind (chain ind :genome))))
-    (case (random-elt '(:delete :insert :tweak :random))
+    (case (random-elt '(:delete :insert :duplicate :tweak :random))
       (:delete (chain ind :genome (splice i 1)))
       (:insert (chain ind :genome (splice i 0 (poly))))
+      (:duplicate (chain ind :genome (splice (random-ind (chain ind :genome)) 0
+                                             (getprop ind :genome i))))
       (:tweak (tweak-poly (getprop ind :genome i)))
       (:random (new-ind))))
   ind)
@@ -195,5 +196,4 @@
 
 (defun stop () (setf running false))
 (defun best ()
-  (stop) (clear)
-  (chain window pop (sort fit-sort) 0 :genome (map draw)))))
+  (stop) (clear) (chain window pop (sort fit-sort) 0 :genome (map draw)))))
