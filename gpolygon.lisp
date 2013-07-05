@@ -134,7 +134,7 @@
                                    (chain ag (slice (max a-rng)))))))
 
 (defun tweak (lst)
-  (flet ((tweak-num (n) (+ (random n) (/ n 2))))
+  (flet ((tweak-num (n) (+ (* (random) n) (/ n 2))))
     (let ((ind (random-ind lst)))
       (if (numberp (aref lst ind))
           (chain lst (splice ind 1 (tweak-num (aref lst ind))))
