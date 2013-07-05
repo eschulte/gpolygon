@@ -26,7 +26,7 @@
                        (:a :href "#" :onclick (ps (evolve)) "evolve") ", "
                        (:a :href "#" :onclick (ps (stats)) "stats") ", "
                        (:a :href "#" :onclick (ps (stop)) "stop") ", "
-                       (:a :href "#" :onclick (ps (best)) "best")))
+                       (:a :href "#" :onclick (ps (show-best)) "best")))
              (:tr (:th "best") (:td :id "best" "javascript not enabled"))
              (:tr (:th "mean") (:td :id "mean" "javascript not enabled"))
              (:tr (:th "evals") (:td :id "evals" "javascript not enabled"))
@@ -199,5 +199,5 @@
     scores))
 
 (defun stop () (setf running false))
-(defun best ()
-  (stop) (clear) (chain window pop (sort fit-sort) 0 :genome (map draw)))))
+(defun best () (chain window pop (sort fit-sort) 0))
+(defun show-best () (stop) (clear) (chain (best) :genome (map draw)))))
