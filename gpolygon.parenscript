@@ -48,14 +48,18 @@
                                (getprop data-target i)))))
     difference))
 
+(defun add-poly () (draw (poly)))
+(defun add-individual () (evaluate (new-individual)))
+(defun do-clear () (clear))
+
 
 ;;; Functions on individuals
 ;;
 ;; Every individual is a hash with fitness and a genome array of
 ;; polygons.  A polygon is a color and a set of verticies.
 ;;
-(defvar max-poly-length 8)
-(defvar max-genome-start-length 256)
+(defvar max-poly-length 6)
+(defvar max-genome-start-length 64)
 
 (defun random-color ()
   (+ "rgba("
@@ -79,16 +83,27 @@
 (defun new-individual () (create fit nil genome (genome)))
 
 (defun evaluate (individual)
-  ;; need to map draw over every element of genome
-  ;; (draw (@ individual genome))
+  (clear)
+  (chain (@ individual genome) (map draw))
   (setf (@ individual fit) (score))
-  (@ individual fit))
+  individual)
 
 
 ;; Evolution functions on populations
-(defvar pop nil)
-(defvar best nil)
-(defvar pop-size 256)
+(defvar pop-size 124)
 
-(defun add-poly () (draw (poly)))
-(defun do-clear () (clear))
+(defun pop-helper (n results cb)
+  (if (> n 0)
+      (set-timeout
+       (lambda () (pop-helper (- n 1) (append (list (evaluate (new-individual))) results) cb))
+       20)
+      (cb results)))
+
+(defun populate (cb)
+  (set-timeout (lambda () (pop-helper pop-size (make-array) cb)) 20))
+
+(defun show-scores (pop)
+  (let ((scores ""))
+    (dotimes (i pop-size)
+      (setf scores (+ scores " " (chain (getprop pop i) fit))))
+    (alert scores)))

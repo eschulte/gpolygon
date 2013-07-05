@@ -23,9 +23,12 @@
                                        :style "border: 1px solid black;"))
                          (:td (:canvas :id "current" :width width :height height
                                        :style "border: 1px solid black;"))))
-            (:a :href "#" :onclick (ps (add-poly)) "add polygon") :br
-            (:a :href "#" :onclick (ps (do-clear)) "clear") :br
-            (:a :href "#" :onclick (ps (alert (score))) "score")))))
+            (:a :href "#" :onclick (ps (add-poly)) "add polygon") (str " ")
+            (:a :href "#" :onclick (ps (add-individual)) "add individual") :br
+            (:a :href "#" :onclick (ps (do-clear)) "clear") (str " ")
+            (:a :href "#" :onclick (ps (alert (score))) "score") :br
+            (:a :href "#" :onclick (ps (populate show-scores)) "populate")
+            (:div :id "population")))))
 
 (define-easy-handler (eyjafjallajokull :uri "/eyjafjallajokull.png") ()
   (setf (content-type*) "image/png")
