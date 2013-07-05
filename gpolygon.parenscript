@@ -1,47 +1,94 @@
-(defvar current-cnv nil)
+(defvar width 216 "Image width.")
+(defvar height 162 "Image height.")
+(defvar c-cnv nil)
+(defvar t-cnv nil)
 (defvar target-img (new (-image)))
+
+
+;;; Functions on page elements
 (setf (@ target-img src) "/eyjafjallajokull.png")
-
-(defvar target-cnv nil)
-
-(defun setup ()
-  (setf current-cnv (chain document
-                           (get-element-by-id "current")
-                           (get-context "2d")))
-  (setf target-cnv (chain document
-                          (get-element-by-id "target")
-                          (get-context "2d"))))
-
-(defun draw (points)
-  (let ((head (chain points pop)))
-    (setf (@ current-cnv fill-style) "#f00")
-    (chain current-cnv (begin-path))
-    (chain current-cnv (move-to (@ head 0) (@ head 1)))
-    (chain points ;; a javascript map, not a CL map
-           (map (lambda (point)
-                  (chain current-cnv
-                         (line-to (@ point 0)
-                                  (@ point 1))))))
-    (chain current-cnv (close-path))
-    (chain current-cnv (fill))))
-
 (setf (@ target-img onload)
       (lambda () (setup)
-         (chain target-cnv (draw-image target-img 0 0))))
+         (chain t-cnv (get-context "2d") (draw-image target-img 0 0))))
+
+(defun setup ()
+  "Setup the page by assigning both canvas contexts."
+  (setf c-cnv (chain document (get-element-by-id "current")))
+  (setf t-cnv (chain document (get-element-by-id "target"))))
+
+(defun clear ()
+  (chain c-cnv (get-context "2d")
+         (clear-rect 0 0 (@ c-cnv width) (@ c-cnv height))))
+
+(defun draw (poly)
+  (let* ((points (chain (getprop poly :vertices) (slice 0)))
+         (head (chain points pop))
+         (ctx (chain c-cnv (get-context "2d"))))
+    (setf (@ ctx fill-style) (getprop poly :color))
+    (chain ctx (begin-path))
+    (chain ctx (move-to (@ head 0) (@ head 1)))
+    (chain points ;; a javascript map, not a CL map
+           (map (lambda (point)
+                  (chain ctx (line-to (@ point 0) (@ point 1))))))
+    (chain ctx (close-path))
+    (chain ctx (fill))))
 
 (defun data (id)
-  (let* ((canvas (chain document (get-element-by-id id)))
-         (w (@ canvas width))
-         (h (@ canvas height)))
+  (let ((canvas (chain document (get-element-by-id id))))
     (chain canvas (get-context "2d")
-           (get-image-data 0 0 w h)
-           data)))
+           (get-image-data 0 0 (@ canvas width) (@ canvas height)) data)))
 
 (defun score ()
+  "Return the difference between the current and target canvases."
   (let ((data-current (data "current"))
         (data-target (data "target"))
         (difference 0))
     (dotimes (i (@ data-current length))
       (incf difference (abs (- (getprop data-current i)
                                (getprop data-target i)))))
-    (alert (+ "difference is " difference))))
+    difference))
+
+
+;;; Functions on individuals
+;;
+;; Every individual is a hash with fitness and a genome array of
+;; polygons.  A polygon is a color and a set of verticies.
+;;
+(defvar max-poly-length 8)
+(defvar max-genome-start-length 256)
+
+(defun random-color ()
+  (+ "rgba("
+     (random 256) ", "
+     (random 256) ", "
+     (random 256) ", "
+     (/ (random 100) 100) ")"))
+
+(defun compose () (list))
+
+(defun point () (array (random width) (random height)))
+
+(defun poly ()
+  (create color (random-color)
+          vertices (loop :for i :from 0 :to (random max-poly-length)
+                      :collect (point))))
+
+(defun genome ()
+  (loop :for i :from 0 :to (random max-genome-start-length) :collect (poly)))
+
+(defun new-individual () (create fit nil genome (genome)))
+
+(defun evaluate (individual)
+  ;; need to map draw over every element of genome
+  ;; (draw (@ individual genome))
+  (setf (@ individual fit) (score))
+  (@ individual fit))
+
+
+;; Evolution functions on populations
+(defvar pop nil)
+(defvar best nil)
+(defvar pop-size 256)
+
+(defun add-poly () (draw (poly)))
+(defun do-clear () (clear))

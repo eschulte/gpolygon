@@ -2,6 +2,8 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (enable-curry-compose-reader-macros))
 
+(setf *js-string-delimiter* #\")
+
 (eval-when (:execute)
   (start (make-instance 'hunchentoot:easy-acceptor :port 4242)))
 
@@ -15,14 +17,15 @@
   (with-html-output-to-string (s)
     (:html
      (:head (:script :type "text/javascript" (str js)))
-     (:body :onload (ps (setup) (draw '((10 10) (25 10) (50 50) (10 25))))
-            (:table (:tr (:td "target image")
-                         (:td "current " (:a :href "#" :onclick (ps (score))
-                                             "score")))
+     (:body :onload (ps (setup))
+            (:table (:tr (:td "target image") (:td "current "))
                     (:tr (:td (:canvas :id "target" :width width :height height
                                        :style "border: 1px solid black;"))
                          (:td (:canvas :id "current" :width width :height height
-                                       :style "border: 1px solid black;"))))))))
+                                       :style "border: 1px solid black;"))))
+            (:a :href "#" :onclick (ps (add-poly)) "add polygon") :br
+            (:a :href "#" :onclick (ps (do-clear)) "clear") :br
+            (:a :href "#" :onclick (ps (alert (score))) "score")))))
 
 (define-easy-handler (eyjafjallajokull :uri "/eyjafjallajokull.png") ()
   (setf (content-type*) "image/png")
