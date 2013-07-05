@@ -26,7 +26,8 @@
                        (:a :href "#" :onclick (ps (evolve)) "evolve") ", "
                        (:a :href "#" :onclick (ps (stats)) "stats") ", "
                        (:a :href "#" :onclick (ps (stop)) "stop") ", "
-                       (:a :href "#" :onclick (ps (show-best)) "best")))
+                       (:a :href "#" :onclick (ps (show-best)) "best") ", "
+                       (:a :href "#" :onclick (ps (do-clear)) "clear")))
              (:tr (:th "best") (:td :id "best" "javascript not enabled"))
              (:tr (:th "mean") (:td :id "mean" "javascript not enabled"))
              (:tr (:th "evals") (:td :id "evals" "javascript not enabled"))
