@@ -29,7 +29,8 @@
                        (:a :href "#" :onclick (ps (best)) "best")))
              (:tr (:th "best") (:td :id "best" "javascript not enabled"))
              (:tr (:th "mean") (:td :id "mean" "javascript not enabled"))
-             (:tr (:th "evals") (:td :id "evals" "javascript not enabled")))))))
+             (:tr (:th "evals") (:td :id "evals" "javascript not enabled"))
+             (:tr (:th "length") (:td :id "length" "javascript not enabled")))))))
 
 (define-easy-handler (eyjafjallajokull :uri "/eyjafjallajokull.png") ()
   (setf (content-type*) "image/png")
@@ -163,6 +164,8 @@
 
 (defun fit-sort (a b) (- (getprop a :fit) (getprop b :fit)))
 (defun mean (l) (/ (loop :for el :in l :sum el) (length l)))
+(defun mean-length ()
+  (mean (chain window pop (map (lambda (it) (length (getprop it :genome)))))))
 
 (defun tournament ()
   (chain (loop :for i :from 1 :to tournament-size :collect
@@ -191,7 +194,8 @@
     (setf
      (chain document (get-element-by-id "evals") inner-h-t-m-l) evals
      (chain document (get-element-by-id "best") inner-h-t-m-l) (aref scores 0)
-     (chain document (get-element-by-id "mean") inner-h-t-m-l) (mean scores))
+     (chain document (get-element-by-id "mean") inner-h-t-m-l) (mean scores)
+     (chain document (get-element-by-id "length") inner-h-t-m-l) (mean-length))
     scores))
 
 (defun stop () (setf running false))
