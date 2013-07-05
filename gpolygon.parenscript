@@ -88,10 +88,21 @@
   (setf (@ individual fit) (score))
   individual)
 
+(defun crossover (a b)
+  ;; single point crossover
+  )
+
+(defun mutate (a)
+  ;; delete an element
+  ;; insert a random element
+  ;; tweak a number in an element
+  )
+
 
 ;; Evolution functions on populations
 (defvar pop (make-array))
 (defvar pop-size 124)
+(defvar max-evals 1024)
 
 (defun pop-helper (n cb)
   (if (> n 0)
@@ -108,3 +119,23 @@
     (dotimes (i pop-size)
       (setf scores (+ scores " " (chain (getprop (chain window pop) i) fit))))
     (alert scores)))
+
+;; TODO: wrap this and pop-helper in a macro
+(defun evolve-helper (n cb)
+  (if (> n 0)
+      (progn
+        ;; 1. select two individuals
+        ;; 2. possibly crossover
+        ;; 3. mutate
+        ;; 4. evaluate
+        ;; 5. insert
+        ;; 6. evict
+        (set-timeout (lambda () (evolve-helper (- n 1) cb)) 20))
+      (cb)))
+
+(defun evolve (cb)
+  (set-timeout (lambda () (evolve-helper max-evals cb)) 20))
+
+(defun best ()
+  "Display the best individual in the population."
+  (alert "TODO: implement best"))
