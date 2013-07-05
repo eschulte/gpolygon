@@ -22,12 +22,16 @@
                                        :style "border: 1px solid black;"))
                          (:td (:canvas :id "current" :width width :height height
                                        :style "border: 1px solid black;"))))
-            (:table (:tr (:th "Actions")
-                         (:td (:a :href "#" :onclick (ps (populate)) "populate") ", "
-                              (:a :href "#" :onclick (ps (evolve)) "evolve") ", "
-                              (:a :href "#" :onclick (ps (stats)) "stats")))
-                    (:tr (:th "best") (:td :id "best" "NA"))
-                    (:tr (:th "mean") (:td :id "mean" "NA")))))))
+            (:table
+             (:tr (:th "Actions")
+                  (:td (:a :href "#" :onclick (ps (populate)) "populate") ", "
+                       (:a :href "#" :onclick (ps (evolve)) "evolve") ", "
+                       (:a :href "#" :onclick (ps (stats)) "stats") ", "
+                       (:a :href "#" :onclick (ps (stop)) "stop") ", "
+                       (:a :href "#" :onclick (ps (best)) "best")))
+             (:tr (:th "best") (:td :id "best" "NA"))
+             (:tr (:th "mean") (:td :id "mean" "NA"))
+             (:tr (:th "evals") (:td :id "evals" "NA")))))))
 
 (define-easy-handler (eyjafjallajokull :uri "/eyjafjallajokull.png") ()
   (setf (content-type*) "image/png")
@@ -101,6 +105,7 @@
 ;; Every individual is a hash with fitness and a genome array of
 ;; polygons.  A polygon is a color and a set of verticies.
 ;;
+(defvar evals 0)
 (defvar max-poly-length 6)
 (defvar max-genome-start-length 64)
 
@@ -124,6 +129,7 @@
 (defun copy-ind (ind) (create fit nil genome (chain ind :genome (slice 0))))
 
 (defun evaluate (ind)
+  (incf evals)
   (clear)
   (chain ind :genome (map draw))
   (setf (getprop ind :fit) (score))
@@ -157,9 +163,9 @@
 
 
 ;; Evolution functions on populations
+(defvar running t)
 (defvar pop (make-array))
 (defvar pop-size 256)
-(defvar max-evals 1024)
 (defvar tournament-size 2)
 (defvar disp-update-delay 2 "Delay in milliseconds to allow display to update.")
 
@@ -189,9 +195,8 @@
       (setf scores (+ scores " " (chain (getprop (chain window pop) i) fit))))
     (alert scores)))
 
-;; TODO: wrap this and pop-helper in a macro
-(defun evolve-helper (n)
-  (when (> n 0)
+(defun evolve-helper ()
+  (when running
     ;; crossover or mutation
     (let ((candidate (case (random-elt '(:crossover :mutation))
                        (:crossover (crossover (tournament) (tournament)))
@@ -201,17 +206,21 @@
       ;; replace a random individual in the population
       (chain window pop (sort fit-sort) (splice -1 1 candidate)))
     ;; recur
-    (set-timeout (lambda () (evolve-helper (- n 1))) disp-update-delay)))
+    (set-timeout (lambda () (evolve-helper)) disp-update-delay)))
 
 (defun evolve ()
-  (set-timeout (lambda () (evolve-helper max-evals)) disp-update-delay))
+  (setf running t)
+  (set-timeout (lambda () (evolve-helper)) disp-update-delay))
 
 (defun stats ()
   "Display stats on the population."
   (let ((scores (chain window pop
                        (sort fit-sort) (map (lambda (it) (getprop it :fit))))))
-    (setf (chain document (get-element-by-id "best") inner-h-t-m-l)
-          (+ "" (aref scores 0))
-          (chain document (get-element-by-id "mean") inner-h-t-m-l)
-          (+ "" (mean scores)))
-    scores))))
+    (setf
+     (chain document (get-element-by-id "evals") inner-h-t-m-l) evals
+     (chain document (get-element-by-id "best") inner-h-t-m-l) (aref scores 0)
+     (chain document (get-element-by-id "mean") inner-h-t-m-l) (mean scores))
+    scores))
+
+(defun stop () (setf running false))
+(defun best () (stop) (clear) (evaluate (chain window pop (sort fit-sort) 0)))))
