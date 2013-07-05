@@ -27,9 +27,9 @@
                        (:a :href "#" :onclick (ps (stats)) "stats") ", "
                        (:a :href "#" :onclick (ps (stop)) "stop") ", "
                        (:a :href "#" :onclick (ps (best)) "best")))
-             (:tr (:th "best") (:td :id "best" "NA"))
-             (:tr (:th "mean") (:td :id "mean" "NA"))
-             (:tr (:th "evals") (:td :id "evals" "NA")))))))
+             (:tr (:th "best") (:td :id "best" "javascript not enabled"))
+             (:tr (:th "mean") (:td :id "mean" "javascript not enabled"))
+             (:tr (:th "evals") (:td :id "evals" "javascript not enabled")))))))
 
 (define-easy-handler (eyjafjallajokull :uri "/eyjafjallajokull.png") ()
   (setf (content-type*) "image/png")
@@ -50,7 +50,7 @@
 ;;; Page elements
 (setf (@ target-img src) "/eyjafjallajokull.png")
 (setf (@ target-img onload)
-      (lambda () (setup)
+      (lambda () (setup) (stats)
          (chain t-cnv (get-context "2d") (draw-image target-img 0 0))))
 
 (defun setup ()
@@ -161,7 +161,7 @@
 (defvar disp-update-delay 2 "Delay in milliseconds to allow display to update.")
 
 (defun fit-sort (a b) (- (getprop a :fit) (getprop b :fit)))
-(defun mean (l) (/ (loop :for el :in l :sum (incf total el)) (length l)))
+(defun mean (l) (/ (loop :for el :in l :sum el) (length l)))
 
 (defun tournament ()
   (chain (loop :for i :from 1 :to tournament-size :collect
