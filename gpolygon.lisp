@@ -17,13 +17,17 @@
     (:html
      (:head (:script :type "text/javascript" :src "/evolve.js"))
      (:body :onload (ps (setup))
-            (:table (:tr (:td "target image") (:td "current "))
+            (:table (:tr (:th "target image") (:th "current "))
                     (:tr (:td (:canvas :id "target" :width width :height height
                                        :style "border: 1px solid black;"))
                          (:td (:canvas :id "current" :width width :height height
                                        :style "border: 1px solid black;"))))
-            (:a :href "#" :onclick (ps (populate (lambda () (evolve best))))
-                "evolve")))))
+            (:table (:tr (:th "Actions")
+                         (:td (:a :href "#" :onclick (ps (populate)) "populate") ", "
+                              (:a :href "#" :onclick (ps (evolve)) "evolve") ", "
+                              (:a :href "#" :onclick (ps (stats)) "stats")))
+                    (:tr (:th "best") (:td :id "best" "NA"))
+                    (:tr (:th "mean") (:td :id "mean" "NA")))))))
 
 (define-easy-handler (eyjafjallajokull :uri "/eyjafjallajokull.png") ()
   (setf (content-type*) "image/png")
@@ -121,8 +125,8 @@
 
 (defun evaluate (ind)
   (clear)
-  (chain (@ ind genome) (map draw))
-  (setf (@ ind fit) (score))
+  (chain ind :genome (map draw))
+  (setf (getprop ind :fit) (score))
   ind)
 
 (defun crossover (a b)
@@ -144,26 +148,40 @@
 
 (defun mutate (ind)
   (let ((i (random-ind (chain ind :genome))))
-    (case (random-elt '(:delete :insert :tweak))
+    (case (random-elt '(:delete :insert :tweak :random))
       (:delete (chain ind :genome (splice i 1)))
       (:insert (chain ind :genome (splice i 0 (poly))))
-      (:tweak (tweak-poly (getprop ind :genome i))))))
+      (:tweak (tweak-poly (getprop ind :genome i)))
+      (:random (new-ind))))
+  ind)
 
 
 ;; Evolution functions on populations
 (defvar pop (make-array))
-(defvar pop-size 124)
+(defvar pop-size 256)
 (defvar max-evals 1024)
+(defvar tournament-size 2)
+(defvar disp-update-delay 2 "Delay in milliseconds to allow display to update.")
 
-(defun pop-helper (n cb)
-  (if (> n 0)
-      (progn
-        (chain window pop (push (evaluate (new-ind))))
-        (set-timeout (lambda () (pop-helper (- n 1) cb)) 20))
-      (cb)))
+(defun fit-sort (a b) (- (getprop a :fit) (getprop b :fit)))
+(defun mean (list)
+  (let ((total 0))
+    (loop :for el :in list :do (incf total el))
+    (/ total (length list))))
 
-(defun populate (cb)
-  (set-timeout (lambda () (pop-helper pop-size cb)) 20))
+(defun tournament ()
+  ;; for now we can just assume a tournament size of two
+  (chain (loop :for i :from 1 :to tournament-size :collect
+            (random-elt (chain window pop)))
+         (sort fit-sort) 0))
+
+(defun pop-helper (n)
+  (when (> n 0)
+    (chain window pop (push (evaluate (new-ind))))
+    (set-timeout (lambda () (pop-helper (- n 1))) disp-update-delay)))
+
+(defun populate ()
+  (set-timeout (lambda () (pop-helper pop-size)) disp-update-delay))
 
 (defun show-scores ()
   (let ((scores ""))
@@ -172,23 +190,28 @@
     (alert scores)))
 
 ;; TODO: wrap this and pop-helper in a macro
-(defun evolve-helper (n cb)
-  (if (> n 0)
-      (progn
-        ;; 1. select two individuals
-        ;; 2. possibly crossover
-        ;; 3. mutate
-        ;; 4. evaluate
-        ;; 5. insert
-        ;; 6. evict
-        (set-timeout (lambda () (evolve-helper (- n 1) cb)) 20))
-      (cb)))
+(defun evolve-helper (n)
+  (when (> n 0)
+    ;; crossover or mutation
+    (let ((candidate (case (random-elt '(:crossover :mutation))
+                       (:crossover (crossover (tournament) (tournament)))
+                       (:mutation (mutate (copy-ind (tournament)))))))
+      ;; evaluate
+      (evaluate candidate)
+      ;; replace a random individual in the population
+      (chain window pop (sort fit-sort) (splice -1 1 candidate)))
+    ;; recur
+    (set-timeout (lambda () (evolve-helper (- n 1))) disp-update-delay)))
 
-(defun evolve (cb)
-  (set-timeout (lambda () (evolve-helper max-evals cb)) 20))
+(defun evolve ()
+  (set-timeout (lambda () (evolve-helper max-evals)) disp-update-delay))
 
-(defun best ()
-  "Display the best individual in the population."
-  (alert "TODO: implement best"))
-
-))
+(defun stats ()
+  "Display stats on the population."
+  (let ((scores (chain window pop
+                       (sort fit-sort) (map (lambda (it) (getprop it :fit))))))
+    (setf (chain document (get-element-by-id "best") inner-h-t-m-l)
+          (+ "" (aref scores 0))
+          (chain document (get-element-by-id "mean") inner-h-t-m-l)
+          (+ "" (mean scores)))
+    scores))))
