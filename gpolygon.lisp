@@ -134,25 +134,28 @@
                                    (chain bg (slice (min b-rng) (max b-rng)))
                                    (chain ag (slice (max a-rng)))))))
 
-(defun tweak (lst)
-  (flet ((tweak-num (n) (+ (* (random) n) (/ n 2))))
-    (let ((ind (random-ind lst)))
-      (if (numberp (aref lst ind))
-          (chain lst (splice ind 1 (tweak-num (aref lst ind))))
-          (chain lst (splice ind 1 (tweak (aref lst ind))))))))
+(defun tweak-range (n range)
+  (let ((pull (/ (random (* 100 range)) 100)))
+    (mean (list n n n n pull))))
 
+;; seems to work better w/o color tweaks
 (defun tweak-poly (poly)
-  (tweak (getprop poly (random-elt '(:color :vertices)))))
+  (let ((vert (random-elt (getprop poly :vertices))))
+    (if (> (random) 0.5)
+        ;; width
+        (setf (aref vert 0) (tweak-range (aref vert 0) width))
+        ;; height
+        (setf (aref vert 1) (tweak-range (aref vert 1) height)))))
 
 (defun mutate (ind)
   (let ((i (random-ind (chain ind :genome))))
-    (case (random-elt '(:delete :insert :duplicate :tweak :random))
+    (case (random-elt '(:delete :insert :tweak :random :duplicate))
       (:delete (chain ind :genome (splice i 1)))
       (:insert (chain ind :genome (splice i 0 (poly))))
+      (:tweak (tweak-poly (getprop ind :genome i)))
       (:duplicate (chain ind :genome (splice (random-ind (chain ind :genome)) 0
                                              (getprop ind :genome i))))
-      (:tweak (tweak-poly (getprop ind :genome i)))
-      (:random (new-ind))))
+      (:random (setf ind (new-ind)))))
   ind)
 
 
