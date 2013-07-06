@@ -6,8 +6,8 @@
   "Start serving up pages."
   (start (make-instance 'hunchentoot:easy-acceptor :port 4242)))
 
-(defvar width 216 "Image width.")
-(defvar height 162 "Image height.")
+(defvar width 198 "Image width.")
+(defvar height 300 "Image height.")
 
 
 ;;; Pages
@@ -22,33 +22,40 @@
                                        :style "border: 1px solid black;"))))
             (:table
              (:tr (:th "Actions")
-                  (:td (loop :for act :in 
+                  (:td (loop :for act :in '(populate run stats stop
+                                            show-best get-best do-clear)
                           :do (htm (:a :href "#" :onclick (ps* (list act))
                                        (str act)) " "))))
              (loop :for stat :in '("best" "mean" "evals" "length") :do
                 (htm (:tr (:th (str stat)) (:td :id stat "no js")))))))))
 
-(define-easy-handler (eyjafjallajokull :uri "/eyjafjallajokull.png") ()
+(defun serve-img (path stream)
   (setf (content-type*) "image/png")
-  (with-open-file (in "data/eyjafjallajokull.png"
-                      :element-type '(unsigned-byte 8))
-    (cl-fad:copy-stream in (send-headers))))
+  (with-open-file (in path :element-type '(unsigned-byte 8))
+    (cl-fad:copy-stream in stream)))
+
+(define-easy-handler (eyjafjallajokull :uri "/eyjafjallajokull.png") ()
+  (serve-img "data/eyjafjallajokull.png" (send-headers)))
+
+(define-easy-handler (mona-lisa :uri "/mona-lisa.png") ()
+  (serve-img "data/mona-lisa.png" (send-headers)))
 
 (define-easy-handler (evolve-js :uri "/evolve.js") ()
   (setf (content-type*) "text/javascript")
   (ps
-(defvar width 216 "Image width.")
-(defvar height 162 "Image height.")
+(defvar width nil)
+(defvar height nil)
 (defvar c-cnv nil)
 (defvar t-cnv nil)
 (defvar target-img (new (-image)))
 
 
 ;;; Page elements
-(setf (@ target-img src) "/eyjafjallajokull.png")
+(setf (@ target-img src) "/mona-lisa.png")
 (setf (@ target-img onload)
       (lambda () (setup) (stats) (set-interval stats 1000)
-         (chain t-cnv (get-context "2d") (draw-image target-img 0 0))))
+         (chain t-cnv (get-context "2d") (draw-image target-img 0 0))
+         (setf width (chain t-cnv width) height (chain t-cnv height))))
 
 (defun setup ()
   (setf c-cnv (chain document (get-element-by-id "current")))
@@ -153,13 +160,10 @@
 
 (defun mutate (ind)
   (let ((i (random-ind (chain ind :genome))))
-    (case (random-elt '(:delete :insert :tweak :random :duplicate))
+    (case (random-elt '(:delete :insert :tweak :random))
       (:delete (chain ind :genome (splice i 1)))
       (:insert (chain ind :genome (splice i 0 (poly))))
       (:tweak (tweak-poly (getprop ind :genome i)))
-      (:duplicate (chain ind :genome
-                         (splice (random-ind (chain ind :genome)) 0
-                                 (getprop ind :genome i))))
       (:random (setf ind (new-ind)))))
   ind)
 
