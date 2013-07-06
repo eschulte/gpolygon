@@ -15,19 +15,17 @@
   (with-html-output-to-string (s)
     (:html
      (:head (:script :type "text/javascript" :src "/evolve.js"))
-     (:body (:table (:tr (:th "target image") (:th "current "))
-                    (:tr (:td (:canvas :id "target" :width width :height height
-                                       :style "border: 1px solid black;"))
-                         (:td (:canvas :id "current" :width width :height height
-                                       :style "border: 1px solid black;"))))
-            (:table
-             (:tr (:th "Actions")
-                  (:td (loop :for act :in '(populate run stats stop
-                                            show-best get-best do-clear)
-                          :do (htm (:a :href "#" :onclick (ps* (list act))
-                                       (str act)) " "))))
-             (loop :for stat :in '("best" "mean" "evals" "length") :do
-                (htm (:tr (:th (str stat)) (:td :id stat "no js")))))))))
+     (:body
+      (:table (:tr (:th "target image") (:th "current "))
+              (:tr (:td (:canvas :id "target" :width width :height height))
+                   (:td (:canvas :id "current" :width width :height height))))
+      (:table (:tr (:th "Actions")
+                   (:td (loop :for act :in '(populate run stats stop
+                                             show-best get-best do-clear)
+                           :do (htm (:a :href "#" :onclick (ps* (list act))
+                                        (str act)) " "))))
+              (loop :for stat :in '("best" "mean" "evals" "length") :do
+                 (htm (:tr (:th (str stat)) (:td :id stat "no js")))))))))
 
 (defun serve-img (path stream)
   (setf (content-type*) "image/png")
