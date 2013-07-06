@@ -149,19 +149,30 @@
 
 ;; seems to work better w/o color tweaks
 (defun tweak-poly (poly)
-  (let ((vert (random-elt (getprop poly :vertices))))
-    (if (> (random) 0.5)
-        ;; width
-        (setf (aref vert 0) (tweak-range (aref vert 0) width))
-        ;; height
-        (setf (aref vert 1) (tweak-range (aref vert 1) height)))))
+  (if (> (random) 0.5)
+      ;; verticies
+      (let ((vert (random-elt (getprop poly :vertices))))
+        (if (> (random) 0.5)
+            ;; width
+            (setf (aref vert 0) (tweak-range (aref vert 0) width))
+            ;; height
+            (setf (aref vert 1) (tweak-range (aref vert 1) height))))
+      ;; color
+      (let ((pt (random 4)))
+        (setf (aref (getprop poly :color) 4)
+              (if (= pt 3) 
+                  (/ (tweak-range (* 100 (aref (getprop poly :color) pt)) 100)
+                     100)
+                  (tweak-range (aref (getprop poly :color) pt) 255))))))
 
 (defun mutate (ind)
   (let ((i (random-ind (chain ind :genome))))
-    (case (random-elt '(:delete :insert :tweak :random))
+    (case (random-elt '(:delete :insert :tweak :swap :random))
       (:delete (chain ind :genome (splice i 1)))
       (:insert (chain ind :genome (splice i 0 (poly))))
       (:tweak (tweak-poly (getprop ind :genome i)))
+      (:swap (let ((cp (copy-poly (random-elt (chain ind :genome)))))
+               (chain ind :genome (splice i 1 cp))))
       (:random (setf ind (new-ind)))))
   ind)
 
