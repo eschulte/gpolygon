@@ -141,8 +141,12 @@
                     (chain ag (slice (max a-rng)) (map copy-poly))))))
 
 (defun tweak-range (n range)
-  (let ((pull (/ (random (* 100 range)) 100)))
-    (mean (list n n n n pull))))
+  ;; bigger or smaller
+  (if (> (random) 0.5)
+      ;; bigger
+      (min (+ n (random (/ n 8))) range)
+      ;; smaller
+      (max (- n (random (/ n 8))) 0)))
 
 ;; seems to work better w/o color tweaks
 (defun tweak-poly (poly)
@@ -215,5 +219,3 @@
 (defun get-best ()
   (chain window (open (+ "data:text/JSON;base64,"
                          (btoa (chain -j-s-o-n (stringify (best))))))))))
-
-
