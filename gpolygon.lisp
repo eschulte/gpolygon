@@ -170,7 +170,7 @@
 (defvar running t)
 (defvar pop (make-array))
 (defvar pop-size 512)
-(defvar tournament-size 4)
+(defvar tournament-size 2)
 (defvar disp-update-delay 2 "Delay in milliseconds to allow display to update.")
 
 (defun fit-sort (a b) (- (getprop a :fit) (getprop b :fit)))
