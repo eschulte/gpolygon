@@ -27,6 +27,7 @@
                        (:a :href "#" :onclick (ps (stats)) "stats") ", "
                        (:a :href "#" :onclick (ps (stop)) "stop") ", "
                        (:a :href "#" :onclick (ps (show-best)) "best") ", "
+                       (:a :href "#" :onclick (ps (get-best)) "download") ", "
                        (:a :href "#" :onclick (ps (do-clear)) "clear")))
              (:tr (:th "best") (:td :id "best" "javascript not enabled"))
              (:tr (:th "mean") (:td :id "mean" "javascript not enabled"))
@@ -204,4 +205,9 @@
 
 (defun stop () (setf running false))
 (defun best () (chain window pop (sort fit-sort) 0))
-(defun show-best () (stop) (clear) (chain (best) :genome (map draw)))))
+(defun show-best () (stop) (clear) (chain (best) :genome (map draw)))
+(defun get-best ()
+  (chain window (open (+ "data:text/JSON;base64,"
+                         (btoa (chain -j-s-o-n (stringify (best))))))))))
+
+
