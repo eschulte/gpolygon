@@ -6,62 +6,62 @@
   "Start serving up pages."
   (start (make-instance 'hunchentoot:easy-acceptor :port 4242)))
 
-(defvar width 198 "Image width.")
-(defvar height 300 "Image height.")
-
 
 ;;; Pages
 (define-easy-handler (main :uri "/") ()
   (with-html-output-to-string (s)
     (:html
      (:head (:script :type "text/javascript" :src "/evolve.js"))
-     (:body
-      (:table (:tr (:th "target image") (:th "current "))
-              (:tr (:td (:canvas :id "target" :width width :height height))
-                   (:td (:canvas :id "current" :width width :height height))))
-      (:table (:tr (:th "Actions")
-                   (:td (loop :for act :in '(populate run stats stop
-                                             show-best get-best do-clear)
-                           :do (htm (:a :href "#" :onclick (ps* (list act))
-                                        (str act)) " "))))
-              (loop :for stat :in '("best" "mean" "evals" "length") :do
-                 (htm (:tr (:th (str stat)) (:td :id stat "no js")))))))))
-
-(defun serve-img (path stream)
-  (setf (content-type*) "image/png")
-  (with-open-file (in path :element-type '(unsigned-byte 8))
-    (cl-fad:copy-stream in stream)))
-
-(define-easy-handler (eyjafjallajokull :uri "/eyjafjallajokull.png") ()
-  (serve-img "data/eyjafjallajokull.png" (send-headers)))
-
-(define-easy-handler (mona-lisa :uri "/mona-lisa.png") ()
-  (serve-img "data/mona-lisa.png" (send-headers)))
+     (:body :onload (ps (setup))
+            (:table (:tr (:th "target image") (:th "current "))
+                    (:tr (:td (:canvas :id "target" :onclick (ps (set-image))))
+                         (:td (:canvas :id "current" :onclick (ps (get-best))))))
+            (:table (:tr (:th "Actions")
+                         (:td (loop :for a :in '(populate run stats stop
+                                                 show-best do-clear)
+                                 :do (htm (:a :href "#" :onclick (ps* (list a))
+                                              (str a)) " "))))
+                    (loop :for stat :in '("best" "mean" "evals" "length") :do
+                       (htm (:tr (:th (str stat)) (:td :id stat "no js")))))))))
 
 (define-easy-handler (evolve-js :uri "/evolve.js") ()
   (setf (content-type*) "text/javascript")
   (ps
-(defvar width nil)
-(defvar height nil)
-(defvar c-cnv nil)
-(defvar t-cnv nil)
-(defvar target-img (new (-image)))
+(defvar img (new (-image))) (defvar width nil) (defvar height nil)
 
 
 ;;; Page elements
-(setf (@ target-img src) "/mona-lisa.png")
-(setf (@ target-img onload)
-      (lambda () (setup) (stats) (set-interval stats 1000)
-         (chain t-cnv (get-context "2d") (draw-image target-img 0 0))
-         (setf width (chain t-cnv width) height (chain t-cnv height))))
-
 (defun setup ()
-  (setf c-cnv (chain document (get-element-by-id "current")))
-  (setf t-cnv (chain document (get-element-by-id "target"))))
+  (stats) (set-interval stats 1000)
+  (flet ((write (ctx text)
+           (setf (@ ctx fill-style) "black"
+                 (@ ctx font) "12pt Arial")
+           (chain ctx (fill-text text 80 60))))
+    (write (chain document (get-element-by-id "target") (get-context "2d"))
+           "click to set image")
+    (write (chain document (get-element-by-id "current") (get-context "2d"))
+           "click to get polygons")))
+
+;; image server must have enabled CORS
+;; - https://developer.mozilla.org/en-US/docs/HTML/CORS_Enabled_Image
+;; - http://enable-cors.org/
+(defun set-image ()
+  (let ((canvas (chain document (get-element-by-id "target")))
+        (current (chain document (get-element-by-id "current"))))
+    (setf (@ img onload)
+          (lambda ()
+            (setf
+             (@ canvas width) (@ img width) (@ canvas height) (@ img height)
+             (@ current width) (@ img width) (@ current height) (@ img height)
+             width (@ img width) height (@ img height))
+            (chain canvas (get-context "2d") (draw-image img 0 0)))
+          (@ img cross-origin) "anonymous" ;; w/o this display any, but no data
+          (@ img src) (prompt "please enter an image url"
+                              "http://cs.unm.edu/~eschulte/data/dock.png"))))
 
 (defun clear ()
-  (chain c-cnv (get-context "2d")
-         (clear-rect 0 0 (@ c-cnv width) (@ c-cnv height))))
+  (chain document (get-element-by-id "current") (get-context "2d")
+         (clear-rect 0 0 width height)))
 
 (defun draw-color (c)
   (+ "rgba(" (aref c 0) ", " (aref c 1) ", " (aref c 2) ", " (aref c 3) ")"))
@@ -69,7 +69,7 @@
 (defun draw (poly)
   (let* ((points (chain (getprop poly :vertices) (slice 0)))
          (head (chain points pop))
-         (ctx (chain c-cnv (get-context "2d"))))
+         (ctx (chain document (get-element-by-id "current") (get-context "2d"))))
     (setf (@ ctx fill-style) (draw-color (getprop poly :color)))
     (chain ctx (begin-path))
     (chain ctx (move-to (@ head 0) (@ head 1)))
@@ -79,9 +79,8 @@
     (chain ctx (fill))))
 
 (defun data (id)
-  (let ((canvas (chain document (get-element-by-id id))))
-    (chain canvas (get-context "2d")
-           (get-image-data 0 0 (@ canvas width) (@ canvas height)) data)))
+  (chain document (get-element-by-id id) (get-context "2d")
+         (get-image-data 0 0 width height) data))
 
 (defun score ()
   (let ((data-current (data "current"))
