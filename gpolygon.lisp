@@ -22,17 +22,11 @@
                                        :style "border: 1px solid black;"))))
             (:table
              (:tr (:th "Actions")
-                  (:td (:a :href "#" :onclick (ps (populate)) "populate") ", "
-                       (:a :href "#" :onclick (ps (evolve)) "evolve") ", "
-                       (:a :href "#" :onclick (ps (stats)) "stats") ", "
-                       (:a :href "#" :onclick (ps (stop)) "stop") ", "
-                       (:a :href "#" :onclick (ps (show-best)) "best") ", "
-                       (:a :href "#" :onclick (ps (get-best)) "download") ", "
-                       (:a :href "#" :onclick (ps (do-clear)) "clear")))
-             (:tr (:th "best") (:td :id "best" "javascript not enabled"))
-             (:tr (:th "mean") (:td :id "mean" "javascript not enabled"))
-             (:tr (:th "evals") (:td :id "evals" "javascript not enabled"))
-             (:tr (:th "length") (:td :id "length" "javascript not enabled")))))))
+                  (:td (loop :for act :in 
+                          :do (htm (:a :href "#" :onclick (ps* (list act))
+                                       (str act)) " "))))
+             (loop :for stat :in '("best" "mean" "evals" "length") :do
+                (htm (:tr (:th (str stat)) (:td :id stat "no js")))))))))
 
 (define-easy-handler (eyjafjallajokull :uri "/eyjafjallajokull.png") ()
   (setf (content-type*) "image/png")
@@ -53,7 +47,7 @@
 ;;; Page elements
 (setf (@ target-img src) "/eyjafjallajokull.png")
 (setf (@ target-img onload)
-      (lambda () (setup) (stats)
+      (lambda () (setup) (stats) (set-interval stats 1000)
          (chain t-cnv (get-context "2d") (draw-image target-img 0 0))))
 
 (defun setup ()
@@ -193,15 +187,15 @@
     (set-timeout (lambda () (pop-helper (- n 1))) disp-update-delay)))
 (defun populate () (set-timeout (lambda () (pop-helper pop-size)) disp-update-delay))
 
-(defun evolve-helper ()
+(defun run-helper ()
   (when running
     (chain window pop (sort fit-sort)
            (splice -1 1 (evaluate
                          (mutate (if (= 0 (random 2))
                                      (copy-ind (tournament))
                                      (crossover (tournament) (tournament)))))))
-    (set-timeout evolve-helper disp-update-delay)))
-(defun evolve () (setf running t) (set-timeout evolve-helper disp-update-delay))
+    (set-timeout run-helper disp-update-delay)))
+(defun run () (setf running t) (set-timeout run-helper disp-update-delay))
 
 (defun stats ()
   (let ((scores (chain window pop
