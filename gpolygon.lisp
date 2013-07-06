@@ -120,7 +120,11 @@
   (loop :for i :from 0 :to (random max-genome-start-length) :collect (poly)))
 
 (defun new-ind () (create fit nil genome (genome)))
-(defun copy-ind (ind) (create fit nil genome (chain ind :genome (slice 0))))
+(defun copy-poly (poly)
+  (create color (chain poly :color (slice 0))
+          vertices (chain poly :vertices (map (lambda (v) (chain v (slice 0)))))))
+(defun copy-ind (ind)
+  (create fit nil genome (chain ind :genome (map copy-poly))))
 
 (defun evaluate (ind)
   (incf evals) (clear) (chain ind :genome (map draw))
@@ -131,9 +135,10 @@
   (let* ((ag (chain a :genome)) (bg (chain b :genome))
          (a-rng (list (random-ind ag) (random-ind ag)))
          (b-rng (list (random-ind bg) (random-ind bg))))
-    (create fit nil genome (append (chain ag (slice 0 (min a-rng)))
-                                   (chain bg (slice (min b-rng) (max b-rng)))
-                                   (chain ag (slice (max a-rng)))))))
+    (create fit nil genome
+            (append (chain ag (slice 0 (min a-rng)) (map copy-poly))
+                    (chain bg (slice (min b-rng) (max b-rng)) (map copy-poly))
+                    (chain ag (slice (max a-rng)) (map copy-poly))))))
 
 (defun tweak-range (n range)
   (let ((pull (/ (random (* 100 range)) 100)))
@@ -154,8 +159,9 @@
       (:delete (chain ind :genome (splice i 1)))
       (:insert (chain ind :genome (splice i 0 (poly))))
       (:tweak (tweak-poly (getprop ind :genome i)))
-      (:duplicate (chain ind :genome (splice (random-ind (chain ind :genome)) 0
-                                             (getprop ind :genome i))))
+      (:duplicate (chain ind :genome
+                         (splice (random-ind (chain ind :genome)) 0
+                                 (getprop ind :genome i))))
       (:random (setf ind (new-ind)))))
   ind)
 
