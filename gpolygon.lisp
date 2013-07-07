@@ -6,7 +6,7 @@
   (start (make-instance 'hunchentoot:easy-acceptor :port port)))
 
 
-;;; Pages
+;;; Main Page
 (define-easy-handler (main :uri "/") ()
   (macrolet ((link (s)
                `(htm (:a :href "#" :onclick (ps* (list ,s)) (str ,s)) " ")))
@@ -14,15 +14,15 @@
           (params '(max-length population-size tournament-size delay)))
       (with-html-output-to-string (s)
         (:html
-         (:head (:script :type "text/javascript" :src "/evolve.js"))
+         (:head (:script :type "text/javascript" (str evolve-javascript)))
          (:body :onload (ps (setup))
-                (:table (:tr (:th "target image") (:th "current "))
-                        (:tr (:td (:canvas :id "target" :onclick (ps (set-image))))
-                             (:td (:canvas :id "current" :onclick (ps (get-best))))))
-                (:table (:tr (:th "Actions") (:td (mapc (lambda (a) (link a)) actions)))
-                        (:tr (:th "Parameters") (:td (mapc (lambda (p) (link p)) params)))
-                        (loop :for stat :in '("best" "mean" "evals" "length") :do
-                           (htm (:tr (:th (str stat)) (:td :id stat "no js")))))))))))
+          (:table (:tr (:th "target image") (:th "current "))
+                  (:tr (:td (:canvas :id "target" :onclick (ps (set-image))))
+                       (:td (:canvas :id "current" :onclick (ps (get-best))))))
+          (:table (:tr (:th "Actions") (:td (mapc (lambda (a) (link a)) actions)))
+                  (:tr (:th "Parameters") (:td (mapc (lambda (p) (link p)) params)))
+                  (loop :for stat :in '("best" "mean" "evals" "length") :do
+                     (htm (:tr (:th (str stat)) (:td :id stat "no js")))))))))))
 
 (defun serve-img (path stream)
   (setf (content-type*) "image/png")
@@ -35,9 +35,7 @@
            (eval `(define-easy-handler (,sym :uri ,uri) ()
                     (serve-img ,f (send-headers)))))))
 
-(define-easy-handler (evolve-js :uri "/evolve.js") ()
-  (setf (content-type*) "text/javascript")
-  (ps
+(defvar evolve-javascript (ps
 (defvar img (new (-image))) (defvar width nil) (defvar height nil)
 
 
