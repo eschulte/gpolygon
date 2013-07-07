@@ -1,3 +1,5 @@
+(defpackage :gpolygon
+  (:use :common-lisp :hunchentoot :cl-who :parenscript :cl-fad))
 (in-package :gpolygon)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (setf *js-string-delimiter* #\"))
