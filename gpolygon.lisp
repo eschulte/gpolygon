@@ -2,9 +2,8 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (setf *js-string-delimiter* #\"))
 
-(defun serve ()
-  "Start serving up pages."
-  (start (make-instance 'hunchentoot:easy-acceptor :port 4242)))
+(defun serve (&key (port 4242))
+  (start (make-instance 'hunchentoot:easy-acceptor :port port)))
 
 
 ;;; Pages
