@@ -12,7 +12,7 @@
   (macrolet ((link (s)
                `(htm (:a :href "#" :onclick (ps* (list ,s)) (str ,s)) " ")))
     (let ((actions '(populate run stats stop show-best do-clear))
-          (params '(maximum-length population-size tournament-size delay)))
+          (params '(max-length population-size tournament-size delay)))
       (with-html-output-to-string (s)
         (:html
          (:head (:script :type "text/javascript" :src "/evolve.js"))
@@ -197,7 +197,7 @@
 (defvar t-size 2)
 (defvar throttle 2 "Delay in milliseconds to allow display to update.")
 
-(defun maximum-length ()
+(defun max-length ()
   (let ((new-max (prompt "soft genome length limit:" soft-genome-length)))
     (unless (null new-max)
       (setf soft-genome-length (parse-int new-max 10))
@@ -214,11 +214,12 @@
              (chain window pop (push (evaluate (new-ind)))))))))
 
 (defun tournament-size ()
-  (setf t-size (parse-int (prompt "tournament size:" t-size) 10)))
+  (let ((new-t (prompt "tournament size:" t-size)))
+    (unless (null new-t) (setf t-size (parse-int new-t 10)))))
 
 (defun delay ()
-  (setf throttle (parse-int (prompt "delay between evaluations (millis):"
-                                    throttle) 10)))
+  (let ((new-d (prompt "delay between evaluations (millis):" throttle)))
+    (unless (null new-d) (setf throttle (parse-int new-d 10)))))
 
 (defun fit-sort (a b) (- (getprop a :fit) (getprop b :fit)))
 (defun mean (l) (/ (loop :for el :in l :sum el) (length l)))
