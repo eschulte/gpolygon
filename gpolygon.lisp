@@ -166,13 +166,12 @@
 
 (defun mutate (ind)
   (let ((i (random-ind (chain ind :genome))))
-    (case (random-elt '(:delete :insert :tweak :swap :random))
+    (case (random-elt '(:delete :insert :tweak :swap))
       (:delete (chain ind :genome (splice i 1)))
       (:insert (chain ind :genome (splice i 0 (poly))))
       (:tweak (tweak-poly (getprop ind :genome i)))
       (:swap (let ((cp (copy-poly (random-elt (chain ind :genome)))))
-               (chain ind :genome (splice i 1 cp))))
-      (:random (setf ind (new-ind)))))
+               (chain ind :genome (splice i 1 cp))))))
   ind)
 
 

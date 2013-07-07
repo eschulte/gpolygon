@@ -1,7 +1,7 @@
 Notes                                                      -*- org -*-
 
-* Tasks [0/7]
-** TODO remove random mutation operation
+* Tasks [1/7]
+** DONE remove random mutation operation
 ** TODO single point crossover
 ** TODO merge mutation operation
 ** TODO soft max length
