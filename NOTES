@@ -1,9 +1,13 @@
 Notes                                                      -*- org -*-
 
-* Tasks [1/8]
+* Tasks [3/9]
 ** DONE remove random mutation operation
 ** TODO single point crossover
-** TODO merge mutation operation
+** DONE merge mutation operation
+** DONE copy mutation operation
+to balance merge, same number of length increasing and length
+decreasing operators
+
 ** TODO soft max length
 fitness = difference \times (/ (min soft-max-length length) soft-max-length)
 ** TODO settable form elements for GP parameters
