@@ -1,8 +1,8 @@
 Notes                                                      -*- org -*-
 
-* Tasks [3/9]
+* Tasks [4/9]
 ** DONE remove random mutation operation
-** TODO single point crossover
+** DONE single point crossover
 ** DONE merge mutation operation
 ** DONE copy mutation operation
 to balance merge, same number of length increasing and length

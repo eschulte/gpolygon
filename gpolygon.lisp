@@ -129,14 +129,11 @@
   (setf (getprop ind :fit) (score))
   ind)
 
-(defun crossover (a b) ;; two point crossover
-  (let* ((ag (chain a :genome)) (bg (chain b :genome))
-         (a-rng (list (random-ind ag) (random-ind ag)))
-         (b-rng (list (random-ind bg) (random-ind bg))))
+(defun crossover (a b) ;; one point crossover
+  (let ((pt (min (length (getprop a :genome)) (length (getprop b :genome)))))
     (create fit nil genome
-            (append (chain ag (slice 0 (min a-rng)) (map copy-poly))
-                    (chain bg (slice (min b-rng) (max b-rng)) (map copy-poly))
-                    (chain ag (slice (max a-rng)) (map copy-poly))))))
+            (append (chain (getprop a :genome) (slice 0 pt) (map copy-poly))
+                    (chain (getprop b :genome) (slice pt) (map copy-poly))))))
 
 (defun tweak-range (n range)
   ;; bigger or smaller
