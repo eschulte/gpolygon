@@ -1,0 +1,309 @@
+<html><!-- Copyright (C) Eric Schulte 2013, License GPLV3 --><head><title>evolve polygons to match images</title></head><body onload='setup();'><table><tr><th>target image</th><th>current </th></tr><tr><td><canvas id='target' onclick='setImage();'></canvas></td><td><canvas id='current' onclick='getBest();'></canvas></td></tr></table><table><tr><th>Actions</th><td><a href='#' onclick='populate();'>POPULATE</a> <a href='#' onclick='run();'>RUN</a> <a href='#' onclick='stats();'>STATS</a> <a href='#' onclick='stop();'>STOP</a> <a href='#' onclick='showBest();'>SHOW-BEST</a> <a href='#' onclick='doClear();'>DO-CLEAR</a> <a href='#' onclick='loadPolygon();'>LOAD-POLYGON</a> </td></tr><tr><th>Parameters</th><td><a href='#' onclick='maxLength();'>MAX-LENGTH</a> <a href='#' onclick='populationSize();'>POPULATION-SIZE</a> <a href='#' onclick='tournamentSize();'>TOURNAMENT-SIZE</a> <a href='#' onclick='delay();'>DELAY</a> </td></tr><tr><th>best</th><td id='best'>no js</td></tr><tr><th>mean</th><td id='mean'>no js</td></tr><tr><th>evals</th><td id='evals'>no js</td></tr><tr><th>length</th><td id='length'>no js</td></tr></table><script type='text/javascript'>var img = new Image();
+var width = null;
+var height = null;
+function setup() {
+    stats();
+    setInterval(stats, 1000);
+    var write = function (ctx, text) {
+        ctx.fillStyle = "black";
+        ctx.font = "12pt Arial";
+        return ctx.fillText(text, 80, 60);
+    };
+    write(document.getElementById("target").getContext("2d"), "click to set image");
+    return write(document.getElementById("current").getContext("2d"), "click to get polygons");
+};
+function setImage() {
+    var canvas = document.getElementById("target");
+    var current = document.getElementById("current");
+    img.onload = function () {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        current.width = img.width;
+        current.height = img.height;
+        width = img.width;
+        height = img.height;
+        return canvas.getContext("2d").drawImage(img, 0, 0);
+    };
+    img.crossOrigin = "anonymous";
+    return img.src = prompt("enter an image url (from a CORS enabled server)", "./images/mona-lisa.png");
+};
+function loadPolygon() {
+    var data = prompt("paste in the JSON of a polygon");
+    if (data != null) {
+        var individual = JSON.parse(data);
+        evaluate(individual);
+        stop();
+        clear();
+        individual["genome"].map(draw);
+        return window.pop.sort(fitSort).splice(-1, 1, individual);
+    };
+};
+function clear() {
+    return document.getElementById("current").getContext("2d").clearRect(0, 0, width, height);
+};
+function drawColor(c) {
+    return "rgba(" + c[0] + ", " + c[1] + ", " + c[2] + ", " + c[3] + ")";
+};
+function draw(poly) {
+    var points = poly["vertices"].slice(0);
+    var head = points.pop;
+    var cx = document.getElementById("current").getContext("2d");
+    cx.fillStyle = drawColor(poly["color"]);
+    cx.beginPath();
+    cx.moveTo(head[0], head[1]);
+    points.map(function (point) {
+        return cx.lineTo(point[0], point[1]);
+    });
+    cx.closePath();
+    return cx.fill();
+};
+function data(id) {
+    try {
+        return document.getElementById(id).getContext("2d").getImageData(0, 0, width, height).data;
+    } catch (e) {
+        return alert("no image data set");
+    };
+};
+function score() {
+    var dc = data("current");
+    var dt = dc ? data("target") : null;
+    return (function () {
+        var _js52 = dc.length;
+        var sum53 = 0;
+        for (var i = 0; i < _js52; i += 1) {
+            sum53 += Math.abs(dc[i] - dt[i]);
+        };
+        return sum53;
+    })();
+};
+function addPoly() {
+    return draw(poly());
+};
+function addInd() {
+    return evaluate(newInd());
+};
+function doClear() {
+    return clear();
+};
+var evals = 0;
+var softGenomeLength = 128;
+var maxPolyLength = 4;
+var maxGenomeStartLength = 32;
+function compose() {
+    return [];
+};
+function randomInd(list) {
+    return Math.floor(list.length * Math.random());
+};
+function randomElt(list) {
+    return list[randomInd(list)];
+};
+function point() {
+    return [Math.floor(width * Math.random()), Math.floor(height * Math.random())];
+};
+function randomColor() {
+    return [Math.floor(256 * Math.random()), Math.floor(256 * Math.random()), Math.floor(256 * Math.random()), Math.floor(100 * Math.random()) / 100];
+};
+function poly() {
+    return { color : randomColor(), vertices : (function () {
+        var _js54 = Math.floor(maxPolyLength * Math.random());
+        var collect55 = [];
+        for (var i = 0; i <= _js54; i += 1) {
+            collect55["push"](point());
+        };
+        return collect55;
+    })() };
+};
+function genome() {
+    return (function () {
+        var _js56 = Math.floor(maxGenomeStartLength * Math.random());
+        var collect57 = [];
+        for (var i = 0; i <= _js56; i += 1) {
+            collect57["push"](poly());
+        };
+        return collect57;
+    })();
+};
+function newInd() {
+    return { fit : null, genome : genome() };
+};
+function copyPoly(poly) {
+    return { color : poly["color"].slice(0), vertices : poly["vertices"].map(function (v) {
+        return v.slice(0);
+    }) };
+};
+function copyInd(ind) {
+    return { fit : null, genome : ind["genome"].map(copyPoly) };
+};
+function evaluate(ind) {
+    ++evals;
+    clear();
+    ind["genome"].map(draw);
+    ind["fit"] = score() * (Math.max(softGenomeLength, ind["genome"].length) / softGenomeLength);
+    return ind;
+};
+function crossover(a, b) {
+    var pt = Math.min(a["genome"].length, b["genome"].length);
+    return { fit : null, genome : a["genome"].slice(0, pt).map(copyPoly).concat(b["genome"].slice(pt).map(copyPoly)) };
+};
+function tweakRange(n, range) {
+    return Math.random() > 0.5 ? Math.min(n + Math.floor((n / 8) * Math.random()), range) : Math.max(n - Math.floor((n / 8) * Math.random()), 0);
+};
+function tweakPoly(poly) {
+    if (Math.random() > 0.5) {
+        var vert = randomElt(poly["vertices"]);
+        return Math.random() > 0.5 ? (vert[0] = tweakRange(vert[0], width)) : (vert[1] = tweakRange(vert[1], height));
+    } else {
+        var pt = Math.floor(4 * Math.random());
+        return poly["color"][4] = pt === 3 ? tweakRange(100 * poly["color"][pt], 100) / 100 : tweakRange(poly["color"][pt], 255);
+    };
+};
+function merge(a, b) {
+    return { color : a["color"], vertices : a["vertices"].concat(b["vertices"]) };
+};
+function mutate(ind) {
+    var i = randomInd(ind["genome"]);
+    switch (randomElt(["delete", "merge", "insert", "copy", "tweak", "swap"])) {
+    case "delete":
+        ind["genome"].splice(i, 1);
+        break;
+    case "merge":
+        var g = ind["genome"];
+        var j = Math.floor((ind["genome"].length - 1) * Math.random());
+        g.splice(j, 1, merge(g[j], g[1 + j]));
+        break;
+    case "insert":
+        ind["genome"].splice(i, 0, poly());
+        break;
+    case "copy":
+        ind["genome"].splice(randomInd(ind["genome"]), 0, copyPoly(ind["genome"][i]));
+        break;
+    case "tweak":
+        tweakPoly(ind["genome"][i]);
+        break;
+    case "swap":
+        var cp = copyPoly(randomElt(ind["genome"]));
+        ind["genome"].splice(i, 1, cp);
+    };
+    return ind;
+};
+var running = true;
+var pop = new Array();
+var popSize = 128;
+var tSize = 2;
+var throttle = 2;
+function maxLength() {
+    var newMax = prompt("soft genome length limit:", softGenomeLength);
+    if (newMax != null) {
+        softGenomeLength = parseInt(newMax, 10);
+        return window.pop.map(evaluate);
+    };
+};
+function populationSize() {
+    var oldSize = popSize;
+    var newSize = prompt("population size:", popSize);
+    if (newSize != null) {
+        popSize = parseInt(newSize, 10);
+        if (oldSize > popSize) {
+            return window.pop.splice(popSize, oldSize - popSize);
+        } else {
+            var _js60 = popSize - oldSize;
+            for (var i = 0; i < _js60; i += 1) {
+                window.pop.push(evaluate(newInd()));
+            };
+        };
+    };
+};
+function tournamentSize() {
+    var newT = prompt("tournament size:", tSize);
+    return newT != null ? (tSize = parseInt(newT, 10)) : null;
+};
+function delay() {
+    var newD = prompt("delay between evaluations (millis):", throttle);
+    return newD != null ? (throttle = parseInt(newD, 10)) : null;
+};
+function fitSort(a, b) {
+    return a["fit"] - b["fit"];
+};
+function mean(l) {
+    return (function () {
+        var _js62 = l.length;
+        var sum63 = 0;
+        for (var _js61 = 0; _js61 < _js62; _js61 += 1) {
+            var el = l[_js61];
+            sum63 += el;
+        };
+        return sum63;
+    })() / l.length;
+};
+function meanLength() {
+    return mean(window.pop.map(function (it) {
+        return it["genome"].length;
+    }));
+};
+function tournament() {
+    return (function () {
+        var collect64 = [];
+        for (var i = 1; i <= tSize; i += 1) {
+            collect64["push"](randomElt(window.pop));
+        };
+        return collect64;
+    })().sort(fitSort)[0];
+};
+function popHelper(n) {
+    if (running && n > 0) {
+        window.pop.push(evaluate(newInd()));
+        return setTimeout(function () {
+            return popHelper(n - 1);
+        }, throttle);
+    };
+};
+function populate() {
+    return setTimeout(function () {
+        return popHelper(popSize);
+    }, throttle);
+};
+function runHelper() {
+    if (running) {
+        window.pop.sort(fitSort).splice(-1, 1, evaluate(mutate(0 === Math.floor(2 * Math.random()) ? copyInd(tournament()) : crossover(tournament(), tournament()))));
+        return setTimeout(runHelper, throttle);
+    };
+};
+function run() {
+    running = true;
+    return setTimeout(runHelper, throttle);
+};
+function stats() {
+    var scores = window.pop.sort(fitSort).map(function (it) {
+        return it["fit"];
+    });
+    document.getElementById("evals").innerHTML = evals;
+    document.getElementById("best").innerHTML = scores[0];
+    document.getElementById("mean").innerHTML = mean(scores);
+    document.getElementById("length").innerHTML = meanLength();
+    return scores;
+};
+function stop() {
+    return running = false;
+};
+function best() {
+    return window.pop.sort(fitSort)[0];
+};
+function showBest() {
+    stop();
+    clear();
+    return best()["genome"].map(draw);
+};
+function getBest() {
+    var best65 = best();
+    var pre = "data:text/JSON;base64,";
+    var _js66 = [["url", img.src], ["evals", evals], ["tournament-size", tSize], ["population-size", popSize], ["max-length", softGenomeLength]];
+    var _js68 = _js66.length;
+    for (var _js67 = 0; _js67 < _js68; _js67 += 1) {
+        var _db69 = _js66[_js67];
+        var key = _db69[0];
+        var val = _db69[1];
+        best65[key] = val;
+    };
+    return window.open(pre + btoa(JSON.stringify(best65)));
+};</script></body></html>
