@@ -91,13 +91,9 @@
          (get-image-data 0 0 width height) data))
 
 (defun score ()
-  (let ((data-current (data "current"))
-        (data-target (data "target"))
-        (difference 0))
-    (dotimes (i (length data-current))
-      (incf difference (abs (- (getprop data-current i)
-                               (getprop data-target i)))))
-    difference))
+  (let ((data-current (data "current")) (data-target (data "target")))
+    (loop :for i :from 0 :below (length data-current) :sum
+       (abs (- (getprop data-current i) (getprop data-target i))))))
 
 (defun add-poly () (draw (poly)))
 (defun add-ind () (evaluate (new-ind)))
