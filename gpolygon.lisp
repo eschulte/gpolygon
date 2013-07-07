@@ -11,19 +11,19 @@
 (define-easy-handler (main :uri "/") ()
   (macrolet ((link (s)
                `(htm (:a :href "#" :onclick (ps* (list ,s)) (str ,s)) " ")))
-    (let ((actions '(populate run stats stop show-best do-clear))
+    (let ((actions '(populate run stats stop show-best do-clear load-polygon))
           (params '(max-length population-size tournament-size delay)))
       (with-html-output-to-string (s)
         (:html
          (:head (:script :type "text/javascript" :src "/evolve.js"))
          (:body :onload (ps (setup))
-          (:table (:tr (:th "target image") (:th "current "))
-                  (:tr (:td (:canvas :id "target" :onclick (ps (set-image))))
-                       (:td (:canvas :id "current" :onclick (ps (get-best))))))
-          (:table (:tr (:th "Actions") (:td (mapc (lambda (a) (link a)) actions)))
-                  (:tr (:th "Parameters") (:td (mapc (lambda (p) (link p)) params)))
-                  (loop :for stat :in '("best" "mean" "evals" "length") :do
-                     (htm (:tr (:th (str stat)) (:td :id stat "no js")))))))))))
+                (:table (:tr (:th "target image") (:th "current "))
+                        (:tr (:td (:canvas :id "target" :onclick (ps (set-image))))
+                             (:td (:canvas :id "current" :onclick (ps (get-best))))))
+                (:table (:tr (:th "Actions") (:td (mapc (lambda (a) (link a)) actions)))
+                        (:tr (:th "Parameters") (:td (mapc (lambda (p) (link p)) params)))
+                        (loop :for stat :in '("best" "mean" "evals" "length") :do
+                           (htm (:tr (:th (str stat)) (:td :id stat "no js")))))))))))
 
 (defun serve-img (path stream)
   (setf (content-type*) "image/png")
@@ -67,6 +67,16 @@
             (chain canvas (get-context "2d") (draw-image img 0 0)))
           (@ img cross-origin) "anonymous" ;; w/o this display any, but no data
           (@ img src) (prompt "please enter an image url" "/mona-lisa.png"))))
+
+(defun load-polygon ()
+  (let ((data (prompt "paste in the JSON of a polygon")))
+    (unless (null data)
+      (let ((individual (chain -j-s-o-n (parse data))))
+        (evaluate individual)
+        ;; show the individual
+        (stop) (clear) (chain individual :genome (map draw))
+        ;; incorporate into the population
+        (chain window pop (sort fit-sort) (splice -1 1 individual))))))
 
 (defun clear ()
   (chain document (get-element-by-id "current") (get-context "2d")

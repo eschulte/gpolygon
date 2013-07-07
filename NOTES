@@ -5,7 +5,7 @@ Notes                                                      -*- org -*-
 - https://developer.mozilla.org/en-US/docs/HTML/CORS_Enabled_Image
 - http://enable-cors.org/
 
-* Tasks [6/9]
+* Tasks [7/9]
 ** DONE remove random mutation operation
 ** DONE single point crossover
 ** DONE merge mutation operation
@@ -23,5 +23,5 @@ fitness = difference \times (/ (max soft-max-length length) soft-max-length)
 - fitness evals
 
 ** TODO better polygon size distribution
-** TODO upload button
+** DONE upload button
 allow display of individuals and insertion into the population
