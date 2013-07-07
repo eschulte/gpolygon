@@ -1,5 +1,13 @@
+;;; gpolygon.lisp --- polygons of images with a steady state genetic algorithm
+
+;; Copyright (C) Eric Schulte 2013
+
+;; Licensed under the Gnu Public License Version 3 or later
+
+;;; Code:
 (defpackage :gpolygon
-  (:use :common-lisp :hunchentoot :cl-who :parenscript :cl-fad))
+  (:use :common-lisp :hunchentoot :cl-who :parenscript :cl-fad)
+  (:export :serve))
 (in-package :gpolygon)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (setf *js-string-delimiter* #\"))
@@ -15,8 +23,8 @@
     (let ((actions '(populate run stats stop show-best do-clear load-polygon))
           (params '(max-length population-size tournament-size delay)))
       (with-html-output-to-string (s)
-        (:html
-         (:head (:script :type "text/javascript" (str evolve-javascript)))
+        (:html (str "<!-- Copyright (C) Eric Schulte 2013, License GPLV3 -->")
+         (:head (:title "evolve polygons to match images"))
          (:body :onload (ps (setup))
           (:table (:tr (:th "target image") (:th "current "))
                   (:tr (:td (:canvas :id "target" :onclick (ps (set-image))))
@@ -24,29 +32,17 @@
           (:table (:tr (:th "Actions") (:td (mapc (lambda (a) (link a)) actions)))
                   (:tr (:th "Parameters") (:td (mapc (lambda (p) (link p)) params)))
                   (loop :for stat :in '("best" "mean" "evals" "length") :do
-                     (htm (:tr (:th (str stat)) (:td :id stat "no js")))))))))))
-
-(defun serve-img (path stream)
-  (setf (content-type*) "image/png")
-  (with-open-file (in path :element-type '(unsigned-byte 8))
-    (cl-fad:copy-stream in stream)))
-
-(walk-directory "data/img/"
-  (lambda (f) (let ((sym (intern (string-upcase (pathname-name f))))
-               (uri (format nil "/~a" (file-namestring f))))
-           (eval `(define-easy-handler (,sym :uri ,uri) ()
-                    (serve-img ,f (send-headers)))))))
-
-(defvar evolve-javascript (ps
-(defvar img (new (-image))) (defvar width nil) (defvar height nil)
+                     (htm (:tr (:th (str stat)) (:td :id stat "no js")))))
+          (:script :type "text/javascript" (str (ps
 
 
-;;; Page elements
+;;; JavaScript
+(defvar img (new (-image))) (defvar width nil) (defvar height nil)
+
 (defun setup ()
   (stats) (set-interval stats 1000)
   (flet ((write (ctx text)
-           (setf (@ ctx fill-style) "black"
-                 (@ ctx font) "12pt Arial")
+           (setf (@ ctx fill-style) "black" (@ ctx font) "12pt Arial")
            (chain ctx (fill-text text 80 60))))
     (write (chain document (get-element-by-id "target") (get-context "2d"))
            "click to set image")
@@ -65,7 +61,8 @@
              width (@ img width) height (@ img height))
             (chain canvas (get-context "2d") (draw-image img 0 0)))
           (@ img cross-origin) "anonymous" ;; w/o this display any, but no data
-          (@ img src) (prompt "please enter an image url" "/mona-lisa.png"))))
+          (@ img src) (prompt "enter an image url (from a CORS enabled server)"
+                              "/mona-lisa.png"))))
 
 (defun load-polygon ()
   (let ((data (prompt "paste in the JSON of a polygon")))
@@ -276,4 +273,19 @@
                                  (:population-size pop-size)
                                  (:max-length soft-genome-length))
        :do (setf (getprop best key) val))
-    (chain window (open (+ pre (btoa (chain -j-s-o-n (stringify best))))))))))
+    (chain window (open (+ pre (btoa (chain -j-s-o-n (stringify best))))))))
+)))))))))
+
+
+;;; Serve local images
+(defun serve-img (path stream)
+  (setf (content-type*) "image/png")
+  (with-open-file (in path :element-type '(unsigned-byte 8))
+    (cl-fad:copy-stream in stream)))
+
+(eval-when (:execute)
+  (walk-directory "data/img/"
+    (lambda (f) (let ((sym (intern (string-upcase (pathname-name f))))
+                 (uri (format nil "/~a" (file-namestring f))))
+             (eval `(define-easy-handler (,sym :uri ,uri) ()
+                      (serve-img ,f (send-headers))))))))
