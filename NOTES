@@ -1,6 +1,6 @@
 Notes                                                      -*- org -*-
 
-* Tasks [1/7]
+* Tasks [1/8]
 ** DONE remove random mutation operation
 ** TODO single point crossover
 ** TODO merge mutation operation
@@ -13,3 +13,5 @@ fitness = difference \times (/ (min soft-max-length length) soft-max-length)
 - fitness evals
 
 ** TODO better polygon size distribution
+** TODO upload button
+allow display of individuals and insertion into the population
