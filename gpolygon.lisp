@@ -9,20 +9,21 @@
 
 ;;; Pages
 (define-easy-handler (main :uri "/") ()
-  (with-html-output-to-string (s)
-    (:html
-     (:head (:script :type "text/javascript" :src "/evolve.js"))
-     (:body :onload (ps (setup))
-            (:table (:tr (:th "target image") (:th "current "))
-                    (:tr (:td (:canvas :id "target" :onclick (ps (set-image))))
-                         (:td (:canvas :id "current" :onclick (ps (get-best))))))
-            (:table (:tr (:th "Actions")
-                         (:td (loop :for a :in '(populate run stats stop
-                                                 show-best do-clear)
-                                 :do (htm (:a :href "#" :onclick (ps* (list a))
-                                              (str a)) " "))))
-                    (loop :for stat :in '("best" "mean" "evals" "length") :do
-                       (htm (:tr (:th (str stat)) (:td :id stat "no js")))))))))
+  (macrolet ((link (s)
+               `(htm (:a :href "#" :onclick (ps* (list ,s)) (str ,s)) " ")))
+    (let ((actions '(populate run stats stop show-best do-clear))
+          (params '(maximum-length population-size tournament-size delay)))
+      (with-html-output-to-string (s)
+        (:html
+         (:head (:script :type "text/javascript" :src "/evolve.js"))
+         (:body :onload (ps (setup))
+          (:table (:tr (:th "target image") (:th "current "))
+                  (:tr (:td (:canvas :id "target" :onclick (ps (set-image))))
+                       (:td (:canvas :id "current" :onclick (ps (get-best))))))
+          (:table (:tr (:th "Actions") (:td (mapc (lambda (a) (link a)) actions)))
+                  (:tr (:th "Parameters") (:td (mapc (lambda (p) (link p)) params)))
+                  (loop :for stat :in '("best" "mean" "evals" "length") :do
+                     (htm (:tr (:th (str stat)) (:td :id stat "no js")))))))))))
 
 (defun serve-img (path stream)
   (setf (content-type*) "image/png")
@@ -193,7 +194,7 @@
 (defvar pop (make-array))
 (defvar pop-size 128)
 (defvar tournament-size 2)
-(defvar disp-update-delay 2 "Delay in milliseconds to allow display to update.")
+(defvar throttle 2 "Delay in milliseconds to allow display to update.")
 
 (defun fit-sort (a b) (- (getprop a :fit) (getprop b :fit)))
 (defun mean (l) (/ (loop :for el :in l :sum el) (length l)))
@@ -208,8 +209,8 @@
 (defun pop-helper (n)
   (when (and running (> n 0))
     (chain window pop (push (evaluate (new-ind))))
-    (set-timeout (lambda () (pop-helper (- n 1))) disp-update-delay)))
-(defun populate () (set-timeout (lambda () (pop-helper pop-size)) disp-update-delay))
+    (set-timeout (lambda () (pop-helper (- n 1))) throttle)))
+(defun populate () (set-timeout (lambda () (pop-helper pop-size)) throttle))
 
 (defun run-helper ()
   (when running
@@ -218,8 +219,8 @@
                          (mutate (if (= 0 (random 2))
                                      (copy-ind (tournament))
                                      (crossover (tournament) (tournament)))))))
-    (set-timeout run-helper disp-update-delay)))
-(defun run () (setf running t) (set-timeout run-helper disp-update-delay))
+    (set-timeout run-helper throttle)))
+(defun run () (setf running t) (set-timeout run-helper throttle))
 
 (defun stats ()
   (let ((scores (chain window pop
