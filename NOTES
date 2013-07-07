@@ -5,7 +5,7 @@ Notes                                                      -*- org -*-
 - https://developer.mozilla.org/en-US/docs/HTML/CORS_Enabled_Image
 - http://enable-cors.org/
 
-* Tasks [7/9]
+* Tasks [8/9]
 ** DONE remove random mutation operation
 ** DONE single point crossover
 ** DONE merge mutation operation
@@ -17,10 +17,10 @@ decreasing operators
 fitness = difference \times (/ (max soft-max-length length) soft-max-length)
 
 ** DONE settable form elements for GP parameters
-** TODO encode ancillary information in downloaded JSON individuals
-- image URL
-- GP parameters
-- fitness evals
+** DONE encode ancillary information in downloaded JSON individuals
+- [X] image URL
+- [X] GP parameters
+- [X] fitness evals
 
 ** TODO better polygon size distribution
 ** DONE upload button

@@ -271,5 +271,10 @@
 (defun best () (chain window pop (sort fit-sort) 0))
 (defun show-best () (stop) (clear) (chain (best) :genome (map draw)))
 (defun get-best ()
-  (chain window (open (+ "data:text/JSON;base64,"
-                         (btoa (chain -j-s-o-n (stringify (best))))))))))
+  (let ((best (best)) (pre "data:text/JSON;base64,"))
+    (loop :for (key val) :in ([] (:url img.src) (:evals evals)
+                                 (:tournament-size t-size)
+                                 (:population-size pop-size)
+                                 (:max-length soft-genome-length))
+       :do (setf (getprop best key) val))
+    (chain window (open (+ pre (btoa (chain -j-s-o-n (stringify best))))))))))
