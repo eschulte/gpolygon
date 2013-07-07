@@ -62,7 +62,7 @@
             (chain canvas (get-context "2d") (draw-image img 0 0)))
           (@ img cross-origin) "anonymous" ;; w/o this display any, but no data
           (@ img src) (prompt "enter an image url (from a CORS enabled server)"
-                              "/mona-lisa.png"))))
+                              "./images/mona-lisa.png"))))
 
 (defun load-polygon ()
   (let ((data (prompt "paste in the JSON of a polygon")))
@@ -283,9 +283,8 @@
   (with-open-file (in path :element-type '(unsigned-byte 8))
     (cl-fad:copy-stream in stream)))
 
-(eval-when (:execute)
-  (walk-directory "data/img/"
-    (lambda (f) (let ((sym (intern (string-upcase (pathname-name f))))
-                 (uri (format nil "/~a" (file-namestring f))))
-             (eval `(define-easy-handler (,sym :uri ,uri) ()
-                      (serve-img ,f (send-headers))))))))
+(walk-directory "images/"
+  (lambda (f) (let ((sym (intern (string-upcase (pathname-name f))))
+               (uri (format nil "/images/~a" (file-namestring f))))
+           (eval `(define-easy-handler (,sym :uri ,uri) ()
+                    (serve-img ,f (send-headers)))))))
