@@ -1,0 +1,15 @@
+Notes                                                      -*- org -*-
+
+* Tasks [0/7]
+** TODO remove random mutation operation
+** TODO single point crossover
+** TODO merge mutation operation
+** TODO soft max length
+fitness = difference \times (/ (min soft-max-length length) soft-max-length)
+** TODO settable form elements for GP parameters
+** TODO encode ancillary information in downloaded JSON individuals
+- image URL
+- GP parameters
+- fitness evals
+
+** TODO better polygon size distribution
