@@ -24,6 +24,17 @@
                     (loop :for stat :in '("best" "mean" "evals" "length") :do
                        (htm (:tr (:th (str stat)) (:td :id stat "no js")))))))))
 
+(defun serve-img (path stream)
+  (setf (content-type*) "image/png")
+  (with-open-file (in path :element-type '(unsigned-byte 8))
+    (cl-fad:copy-stream in stream)))
+
+(walk-directory "data/img/"
+  (lambda (f) (let ((sym (intern (string-upcase (pathname-name f))))
+               (uri (format nil "/~a" (file-namestring f))))
+           (eval `(define-easy-handler (,sym :uri ,uri) ()
+                    (serve-img ,f (send-headers)))))))
+
 (define-easy-handler (evolve-js :uri "/evolve.js") ()
   (setf (content-type*) "text/javascript")
   (ps
@@ -42,9 +53,7 @@
     (write (chain document (get-element-by-id "current") (get-context "2d"))
            "click to get polygons")))
 
-;; image server must have enabled CORS
-;; - https://developer.mozilla.org/en-US/docs/HTML/CORS_Enabled_Image
-;; - http://enable-cors.org/
+;; Image server must have enabled CORS -- http://enable-cors.org/
 (defun set-image ()
   (let ((canvas (chain document (get-element-by-id "target")))
         (current (chain document (get-element-by-id "current"))))
@@ -56,8 +65,7 @@
              width (@ img width) height (@ img height))
             (chain canvas (get-context "2d") (draw-image img 0 0)))
           (@ img cross-origin) "anonymous" ;; w/o this display any, but no data
-          (@ img src) (prompt "please enter an image url"
-                              "http://cs.unm.edu/~eschulte/data/dock.png"))))
+          (@ img src) (prompt "please enter an image url" "/mona-lisa.png"))))
 
 (defun clear ()
   (chain document (get-element-by-id "current") (get-context "2d")
@@ -98,7 +106,7 @@
 
 ;;; Individuals
 (defvar evals 0)
-(defvar max-poly-length 6)
+(defvar max-poly-length 4)
 (defvar max-genome-start-length 32)
 
 (defun compose () (list)) ;; needed for loop macro
@@ -184,7 +192,7 @@
 ;; Populations
 (defvar running t)
 (defvar pop (make-array))
-(defvar pop-size 512)
+(defvar pop-size 128)
 (defvar tournament-size 2)
 (defvar disp-update-delay 2 "Delay in milliseconds to allow display to update.")
 

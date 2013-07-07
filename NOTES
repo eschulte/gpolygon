@@ -1,5 +1,10 @@
 Notes                                                      -*- org -*-
 
+* Notes
+** I don't like CORS
+- https://developer.mozilla.org/en-US/docs/HTML/CORS_Enabled_Image
+- http://enable-cors.org/
+
 * Tasks [4/9]
 ** DONE remove random mutation operation
 ** DONE single point crossover
