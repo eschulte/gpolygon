@@ -88,13 +88,14 @@
     (chain ctx (fill))))
 
 (defun data (id)
-  (chain document (get-element-by-id id) (get-context "2d")
-         (get-image-data 0 0 width height) data))
+  (try (chain document (get-element-by-id id) (get-context "2d")
+              (get-image-data 0 0 width height) data)
+       (:catch (e) (alert "no image data set"))))
 
 (defun score ()
-  (let ((data-current (data "current")) (data-target (data "target")))
-    (loop :for i :from 0 :below (length data-current) :sum
-       (abs (- (getprop data-current i) (getprop data-target i))))))
+  (let* ((dc (data "current")) (dt (when dc (data "target"))))
+    (loop :for i :from 0 :below (length dc) :sum
+       (abs (- (getprop dc i) (getprop dt i))))))
 
 (defun add-poly () (draw (poly)))
 (defun add-ind () (evaluate (new-ind)))
@@ -193,8 +194,31 @@
 (defvar running t)
 (defvar pop (make-array))
 (defvar pop-size 128)
-(defvar tournament-size 2)
+(defvar t-size 2)
 (defvar throttle 2 "Delay in milliseconds to allow display to update.")
+
+(defun maximum-length ()
+  (let ((new-max (prompt "soft genome length limit:" soft-genome-length)))
+    (unless (null new-max)
+      (setf soft-genome-length (parse-int new-max 10))
+      (chain window pop (map evaluate)))))
+
+(defun population-size ()
+  (let ((old-size pop-size)
+        (new-size (prompt "population size:" pop-size)))
+    (unless (null new-size)
+      (setf pop-size (parse-int new-size 10))
+      (if (> old-size pop-size)
+          (chain window pop (splice pop-size (- old-size pop-size)))
+          (loop :for i :from 0 :below (- pop-size old-size) :do
+             (chain window pop (push (evaluate (new-ind)))))))))
+
+(defun tournament-size ()
+  (setf t-size (parse-int (prompt "tournament size:" t-size) 10)))
+
+(defun delay ()
+  (setf throttle (parse-int (prompt "delay between evaluations (millis):"
+                                    throttle) 10)))
 
 (defun fit-sort (a b) (- (getprop a :fit) (getprop b :fit)))
 (defun mean (l) (/ (loop :for el :in l :sum el) (length l)))
@@ -202,8 +226,8 @@
   (mean (chain window pop (map (lambda (it) (length (getprop it :genome)))))))
 
 (defun tournament ()
-  (chain (loop :for i :from 1 :to tournament-size :collect
-            (random-elt (chain window pop)))
+  (chain (loop :for i :from 1 :to t-size
+            :collect (random-elt (chain window pop)))
          (sort fit-sort) 0))
 
 (defun pop-helper (n)
