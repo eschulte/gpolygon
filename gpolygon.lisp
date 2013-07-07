@@ -173,7 +173,7 @@
                     (j (random (- (length (getprop ind :genome)) 1))))
                 (chain g (splice j 1 (merge (aref g j) (aref g (+ 1 j)))))))
       (:insert (chain ind :genome (splice i 0 (poly))))
-      (:copy (chain ind :genome (splict (random-ind (chain ind :genome)) 0
+      (:copy (chain ind :genome (splice (random-ind (chain ind :genome)) 0
                                         (copy-poly (getprop ind :genome i)))))
       (:tweak (tweak-poly (getprop ind :genome i)))
       (:swap (let ((cp (copy-poly (random-elt (chain ind :genome)))))
