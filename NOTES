@@ -5,7 +5,7 @@ Notes                                                      -*- org -*-
 - https://developer.mozilla.org/en-US/docs/HTML/CORS_Enabled_Image
 - http://enable-cors.org/
 
-* Tasks [4/9]
+* Tasks [5/9]
 ** DONE remove random mutation operation
 ** DONE single point crossover
 ** DONE merge mutation operation
@@ -13,8 +13,9 @@ Notes                                                      -*- org -*-
 to balance merge, same number of length increasing and length
 decreasing operators
 
-** TODO soft max length
-fitness = difference \times (/ (min soft-max-length length) soft-max-length)
+** DONE soft max length
+fitness = difference \times (/ (max soft-max-length length) soft-max-length)
+
 ** TODO settable form elements for GP parameters
 ** TODO encode ancillary information in downloaded JSON individuals
 - image URL

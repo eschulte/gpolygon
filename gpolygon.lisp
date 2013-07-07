@@ -102,6 +102,7 @@
 
 ;;; Individuals
 (defvar evals 0)
+(defvar soft-genome-length 128)
 (defvar max-poly-length 4)
 (defvar max-genome-start-length 32)
 
@@ -130,7 +131,9 @@
 
 (defun evaluate (ind)
   (incf evals) (clear) (chain ind :genome (map draw))
-  (setf (getprop ind :fit) (score))
+  (setf (getprop ind :fit)
+        (* (score) (/ (max soft-genome-length (length (getprop ind :genome)))
+                      soft-genome-length)))
   ind)
 
 (defun crossover (a b) ;; one point crossover
