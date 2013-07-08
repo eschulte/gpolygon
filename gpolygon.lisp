@@ -20,7 +20,7 @@
 (define-easy-handler (main :uri "/") ()
   (macrolet ((link (s)
                `(htm (:a :href "#" :onclick (ps* (list ,s)) (str ,s)) " ")))
-    (let ((actions '(populate run stats stop show-best do-clear load-polygon))
+    (let ((actions '(evolve stats stop show-best do-clear load-polygon))
           (params '(max-length population-size tournament-size delay)))
       (with-html-output-to-string (s)
         (:html (str "<!-- Copyright (C) Eric Schulte 2013, License GPLV3 -->")
@@ -238,20 +238,27 @@
          (sort fit-sort) 0))
 
 (defun pop-helper (n)
-  (when (and running (> n 0))
-    (chain window pop (push (evaluate (new-ind))))
-    (set-timeout (lambda () (pop-helper (- n 1))) throttle)))
-(defun populate () (set-timeout (lambda () (pop-helper pop-size)) throttle))
+  (if (and running (> n 0))
+      (progn (chain window pop (push (evaluate (new-ind))))
+             (set-timeout (lambda () (pop-helper (- n 1))) throttle))
+      (set-timeout evolve-helper throttle)))
 
-(defun run-helper ()
+(defun evolve-helper ()
   (when running
     (chain window pop (sort fit-sort)
            (splice -1 1 (evaluate
                          (mutate (if (= 0 (random 2))
                                      (copy-ind (tournament))
                                      (crossover (tournament) (tournament)))))))
-    (set-timeout run-helper throttle)))
-(defun run () (setf running t) (set-timeout run-helper throttle))
+    (set-timeout evolve-helper throttle)))
+(defun evolve ()
+  (setf running t)
+  (if (> pop-size (length (chain window pop)))
+      ;; populate, then evolve
+      (set-timeout (lambda () (pop-helper (- pop-size (length (chain window pop)))))
+                   throttle)
+      ;; just evolve
+      (set-timeout evolve-helper throttle)))
 
 (defun stats ()
   (let ((scores (chain window pop
