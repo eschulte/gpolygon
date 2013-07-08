@@ -20,7 +20,7 @@
 (define-easy-handler (main :uri "/") ()
   (macrolet ((link (s)
                `(htm (:a :href "#" :onclick (ps* (list ,s)) (str ,s)) " ")))
-    (let ((actions '(populate run stats stop show-best do-clear load-polygon))
+    (let ((actions '(evolve stop show-best load-polygon))
           (params '(max-length population-size tournament-size delay)))
       (with-html-output-to-string (s)
         (:html (str "<!-- Copyright (C) Eric Schulte 2013, License GPLV3 -->")
@@ -105,7 +105,6 @@
 
 (defun add-poly () (draw (poly)))
 (defun add-ind () (evaluate (new-ind)))
-(defun do-clear () (clear))
 
 
 ;;; Individuals
@@ -176,23 +175,17 @@
                      100)
                   (tweak-range (aref (getprop poly :color) pt) 255))))))
 
-(defun merge (a b)
-  (create color (getprop a :color)
-          vertices (append (getprop a :vertices) (getprop b :vertices))))
-
 (defun mutate (ind)
   (let ((i (random-ind (chain ind :genome))))
-    (case (random-elt '(:delete :merge :insert :copy :tweak :swap))
+    (case (random-elt '(:delete :insert :tweak :swap))
       (:delete (chain ind :genome (splice i 1)))
-      (:merge (let ((g (getprop ind :genome))
-                    (j (random (- (length (getprop ind :genome)) 1))))
-                (chain g (splice j 1 (merge (aref g j) (aref g (+ 1 j)))))))
       (:insert (chain ind :genome (splice i 0 (poly))))
-      (:copy (chain ind :genome (splice (random-ind (chain ind :genome)) 0
-                                        (copy-poly (getprop ind :genome i)))))
       (:tweak (tweak-poly (getprop ind :genome i)))
-      (:swap (let ((cp (copy-poly (random-elt (chain ind :genome)))))
-               (chain ind :genome (splice i 1 cp))))))
+      (:swap (let* ((j (random-ind (chain ind :genome)))
+                    (cp (copy-poly (getprop ind :genome i)))
+                    (pc (copy-poly (getprop ind :genome j))))
+               (chain ind :genome (splice i 1 pc))
+               (chain ind :genome (splice j 1 cp))))))
   ind)
 
 
@@ -215,7 +208,7 @@
     (unless (null new-size)
       (setf pop-size (parse-int new-size 10))
       (if (> old-size pop-size)
-          (chain window pop (splice pop-size (- old-size pop-size)))
+          (chain window pop (splice pop-size))
           (loop :for i :from 0 :below (- pop-size old-size) :do
              (chain window pop (push (evaluate (new-ind)))))))))
 
@@ -238,20 +231,27 @@
          (sort fit-sort) 0))
 
 (defun pop-helper (n)
-  (when (and running (> n 0))
-    (chain window pop (push (evaluate (new-ind))))
-    (set-timeout (lambda () (pop-helper (- n 1))) throttle)))
-(defun populate () (set-timeout (lambda () (pop-helper pop-size)) throttle))
+  (if (and running (> n 0))
+      (progn (chain window pop (push (evaluate (new-ind))))
+             (set-timeout (lambda () (pop-helper (- n 1))) throttle))
+      (set-timeout evolve-helper throttle)))
 
-(defun run-helper ()
+(defun evolve-helper ()
   (when running
     (chain window pop (sort fit-sort)
            (splice -1 1 (evaluate
                          (mutate (if (= 0 (random 2))
                                      (copy-ind (tournament))
                                      (crossover (tournament) (tournament)))))))
-    (set-timeout run-helper throttle)))
-(defun run () (setf running t) (set-timeout run-helper throttle))
+    (set-timeout evolve-helper throttle)))
+(defun evolve ()
+  (setf running t)
+  (if (> pop-size (length (chain window pop)))
+      ;; populate, then evolve
+      (set-timeout (lambda () (pop-helper (- pop-size (length (chain window pop)))))
+                   throttle)
+      ;; just evolve
+      (set-timeout evolve-helper throttle)))
 
 (defun stats ()
   (let ((scores (chain window pop

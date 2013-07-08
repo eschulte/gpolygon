@@ -1,0 +1,25 @@
+GPolygon
+
+A tiny imlementation of a steady state genetic algorithm (GA) which
+evolves series of colored polygons to approximate a target image
+(mimicking [1]).  The entire project is encoded in <300 LOC of Common
+Lisp (CL).  This includes serving the main page and images using the
+hunchentoot [2] CL webserver, and generating ~300LOC of HTML and
+JavaScript through the cl-who [3] and Parenscript [4] libraries.
+
+All processing is performed client-side in JavaScript.  Any image
+served by a CORS-enabled [5] web server may be used as the target of
+the GA.  The image is stored in a canvas element, and fitness
+evaluation is performed in an accompanying canvas.  GA parameters may
+be adjusted interactively during the course of a run.  Evolved polygon
+images may be downloaded as JSON and shared between instances of the
+application.
+
+The resulting application is available at [6].
+
+[1] http://rogeralsing.com/2008/12/07/genetic-programming-evolution-of-mona-lisa/
+[2] http://weitz.de/hunchentoot/
+[3] http://weitz.de/cl-who/
+[4] http://common-lisp.net/project/parenscript/
+[5] http://enable-cors.org/
+[6] http://eschulte.github.io/gpolygon
