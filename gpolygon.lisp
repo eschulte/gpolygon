@@ -20,7 +20,7 @@
 (define-easy-handler (main :uri "/") ()
   (macrolet ((link (s)
                `(htm (:a :href "#" :onclick (ps* (list ,s)) (str ,s)) " ")))
-    (let ((actions '(evolve stop show-best load-polygon))
+    (let ((actions '(evolve mcmc stop show-best load-polygon))
           (params '(max-length population-size tournament-size delay)))
       (with-html-output-to-string (s)
         (:html (str "<!-- Copyright (C) Eric Schulte 2013, License GPLV3 -->")
@@ -176,16 +176,17 @@
                   (tweak-range (aref (getprop poly :color) pt) 255))))))
 
 (defun mutate (ind)
-  (let ((i (random-ind (chain ind :genome))))
+  (let* ((g (chain ind :genome))
+         (i (random-ind g)))
     (case (random-elt '(:delete :insert :tweak :swap))
-      (:delete (chain ind :genome (splice i 1)))
-      (:insert (chain ind :genome (splice i 0 (poly))))
-      (:tweak (tweak-poly (getprop ind :genome i)))
-      (:swap (let* ((j (random-ind (chain ind :genome)))
-                    (cp (copy-poly (getprop ind :genome i)))
-                    (pc (copy-poly (getprop ind :genome j))))
-               (chain ind :genome (splice i 1 pc))
-               (chain ind :genome (splice j 1 cp))))))
+      (:delete (when (> (length g) 1) (chain g (splice i 1))))
+      (:insert (chain g (splice i 0 (poly))))
+      (:tweak (tweak-poly (aref g i)))
+      (:swap (let* ((j (random-ind g))
+                    (cp (copy-poly (aref g i)))
+                    (pc (copy-poly (aref g j))))
+               (chain g (splice i 1 pc))
+               (chain g (splice j 1 cp))))))
   ind)
 
 
@@ -252,6 +253,20 @@
                    throttle)
       ;; just evolve
       (set-timeout evolve-helper throttle)))
+
+(defun mcmc-helper ()
+  (when running
+    (let* ((old-fit (chain window pop 0 :fit))
+           (new-ind (evaluate (mutate (copy-ind (chain window pop 0)))))
+           (new-fit (@ new-ind :fit)))
+      (when (or (<  new-fit old-fit) (< (random) (/ old-fit new-fit)))
+        (setf (chain window pop 0) new-ind))
+      (set-timeout mcmc-helper throttle))))
+(defun mcmc ()
+  (when (null (chain window pop 0))
+    (setf (chain window pop 0) (evaluate (new-ind))))
+  (chain window pop (sort fit-sort) (splice 1)) (setf pop-size 1)
+  (mcmc-helper))
 
 (defun stats ()
   (let ((scores (chain window pop
