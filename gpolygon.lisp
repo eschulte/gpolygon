@@ -20,7 +20,7 @@
 (define-easy-handler (main :uri "/") ()
   (macrolet ((link (s)
                `(htm (:a :href "#" :onclick (ps* (list ,s)) (str ,s)) " ")))
-    (let ((actions '(evolve stop show-best load-polygon))
+    (let ((actions '(evolve mcmc stop show-best load-polygon))
           (params '(max-length population-size tournament-size delay)))
       (with-html-output-to-string (s)
         (:html (str "<!-- Copyright (C) Eric Schulte 2013, License GPLV3 -->")
@@ -252,6 +252,20 @@
                    throttle)
       ;; just evolve
       (set-timeout evolve-helper throttle)))
+
+(defun mcmc-helper ()
+  (when running
+    (let* ((old-fit (chain window pop 0 :fit))
+           (new-ind (evaluate (mutate (copy-ind (chain window pop 0)))))
+           (new-fit (@ new-ind :fit)))
+      (when (or (<  new-fit old-fit) (< (random) (/ old-fit new-fit)))
+        (setf (chain window pop 0) new-ind))
+      (set-timeout mcmc-helper throttle))))
+(defun mcmc ()
+  (when (null (chain window pop 0))
+    (setf (chain window pop 0) (evaluate (new-ind))))
+  (chain window pop (sort fit-sort) (splice 1)) (setf pop-size 1)
+  (mcmc-helper))
 
 (defun stats ()
   (let ((scores (chain window pop
