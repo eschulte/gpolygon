@@ -20,7 +20,7 @@
 (define-easy-handler (main :uri "/") ()
   (macrolet ((link (s)
                `(htm (:a :href "#" :onclick (ps* (list ,s)) (str ,s)) " ")))
-    (let ((actions '(evolve stats stop show-best do-clear load-polygon))
+    (let ((actions '(evolve stop show-best load-polygon))
           (params '(max-length population-size tournament-size delay)))
       (with-html-output-to-string (s)
         (:html (str "<!-- Copyright (C) Eric Schulte 2013, License GPLV3 -->")
@@ -105,7 +105,6 @@
 
 (defun add-poly () (draw (poly)))
 (defun add-ind () (evaluate (new-ind)))
-(defun do-clear () (clear))
 
 
 ;;; Individuals
