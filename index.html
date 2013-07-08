@@ -1,4 +1,4 @@
-<html><!-- Copyright (C) Eric Schulte 2013, License GPLV3 --><head><title>evolve polygons to match images</title></head><body onload='setup();'><table><tr><th>target image</th><th>current </th></tr><tr><td><canvas id='target' onclick='setImage();'></canvas></td><td><canvas id='current' onclick='getBest();'></canvas></td></tr></table><table><tr><th>Actions</th><td><a href='#' onclick='evolve();'>EVOLVE</a> <a href='#' onclick='stop();'>STOP</a> <a href='#' onclick='showBest();'>SHOW-BEST</a> <a href='#' onclick='loadPolygon();'>LOAD-POLYGON</a> </td></tr><tr><th>Parameters</th><td><a href='#' onclick='maxLength();'>MAX-LENGTH</a> <a href='#' onclick='populationSize();'>POPULATION-SIZE</a> <a href='#' onclick='tournamentSize();'>TOURNAMENT-SIZE</a> <a href='#' onclick='delay();'>DELAY</a> </td></tr><tr><th>best</th><td id='best'>no js</td></tr><tr><th>mean</th><td id='mean'>no js</td></tr><tr><th>evals</th><td id='evals'>no js</td></tr><tr><th>length</th><td id='length'>no js</td></tr></table><script type='text/javascript'>var img = new Image();
+<html><!-- Copyright (C) Eric Schulte 2013, License GPLV3 --><head><title>evolve polygons to match images</title></head><body onload='setup();'><table><tr><th>target image</th><th>current </th></tr><tr><td><canvas id='target' onclick='setImage();'></canvas></td><td><canvas id='current' onclick='getBest();'></canvas></td></tr></table><table><tr><th>Actions</th><td><a href='#' onclick='evolve();'>EVOLVE</a> <a href='#' onclick='mcmc();'>MCMC</a> <a href='#' onclick='stop();'>STOP</a> <a href='#' onclick='showBest();'>SHOW-BEST</a> <a href='#' onclick='loadPolygon();'>LOAD-POLYGON</a> </td></tr><tr><th>Parameters</th><td><a href='#' onclick='maxLength();'>MAX-LENGTH</a> <a href='#' onclick='populationSize();'>POPULATION-SIZE</a> <a href='#' onclick='tournamentSize();'>TOURNAMENT-SIZE</a> <a href='#' onclick='delay();'>DELAY</a> </td></tr><tr><th>best</th><td id='best'>no js</td></tr><tr><th>mean</th><td id='mean'>no js</td></tr><tr><th>evals</th><td id='evals'>no js</td></tr><tr><th>length</th><td id='length'>no js</td></tr></table><script type='text/javascript'>var img = new Image();
 var width = null;
 var height = null;
 function setup() {
@@ -68,12 +68,12 @@ function score() {
     var dc = data("current");
     var dt = dc ? data("target") : null;
     return (function () {
-        var _js972 = dc.length;
-        var sum973 = 0;
-        for (var i = 0; i < _js972; i += 1) {
-            sum973 += Math.abs(dc[i] - dt[i]);
+        var _js1219 = dc.length;
+        var sum1220 = 0;
+        for (var i = 0; i < _js1219; i += 1) {
+            sum1220 += Math.abs(dc[i] - dt[i]);
         };
-        return sum973;
+        return sum1220;
     })();
 };
 function addPoly() {
@@ -103,22 +103,22 @@ function randomColor() {
 };
 function poly() {
     return { color : randomColor(), vertices : (function () {
-        var _js974 = Math.floor(maxPolyLength * Math.random());
-        var collect975 = [];
-        for (var i = 0; i <= _js974; i += 1) {
-            collect975["push"](point());
+        var _js1221 = Math.floor(maxPolyLength * Math.random());
+        var collect1222 = [];
+        for (var i = 0; i <= _js1221; i += 1) {
+            collect1222["push"](point());
         };
-        return collect975;
+        return collect1222;
     })() };
 };
 function genome() {
     return (function () {
-        var _js976 = Math.floor(maxGenomeStartLength * Math.random());
-        var collect977 = [];
-        for (var i = 0; i <= _js976; i += 1) {
-            collect977["push"](poly());
+        var _js1223 = Math.floor(maxGenomeStartLength * Math.random());
+        var collect1224 = [];
+        for (var i = 0; i <= _js1223; i += 1) {
+            collect1224["push"](poly());
         };
-        return collect977;
+        return collect1224;
     })();
 };
 function newInd() {
@@ -156,23 +156,26 @@ function tweakPoly(poly) {
     };
 };
 function mutate(ind) {
-    var i = randomInd(ind["genome"]);
+    var g = ind["genome"];
+    var i = randomInd(g);
     switch (randomElt(["delete", "insert", "tweak", "swap"])) {
     case "delete":
-        ind["genome"].splice(i, 1);
+        if (g.length > 1) {
+            g.splice(i, 1);
+        };
         break;
     case "insert":
-        ind["genome"].splice(i, 0, poly());
+        g.splice(i, 0, poly());
         break;
     case "tweak":
-        tweakPoly(ind["genome"][i]);
+        tweakPoly(g[i]);
         break;
     case "swap":
-        var j = randomInd(ind["genome"]);
-        var cp = copyPoly(ind["genome"][i]);
-        var pc = copyPoly(ind["genome"][j]);
-        ind["genome"].splice(i, 1, pc);
-        ind["genome"].splice(j, 1, cp);
+        var j = randomInd(g);
+        var cp = copyPoly(g[i]);
+        var pc = copyPoly(g[j]);
+        g.splice(i, 1, pc);
+        g.splice(j, 1, cp);
     };
     return ind;
 };
@@ -196,8 +199,8 @@ function populationSize() {
         if (oldSize > popSize) {
             return window.pop.splice(popSize);
         } else {
-            var _js980 = popSize - oldSize;
-            for (var i = 0; i < _js980; i += 1) {
+            var _js1227 = popSize - oldSize;
+            for (var i = 0; i < _js1227; i += 1) {
                 window.pop.push(evaluate(newInd()));
             };
         };
@@ -216,13 +219,13 @@ function fitSort(a, b) {
 };
 function mean(l) {
     return (function () {
-        var _js982 = l.length;
-        var sum983 = 0;
-        for (var _js981 = 0; _js981 < _js982; _js981 += 1) {
-            var el = l[_js981];
-            sum983 += el;
+        var _js1229 = l.length;
+        var sum1230 = 0;
+        for (var _js1228 = 0; _js1228 < _js1229; _js1228 += 1) {
+            var el = l[_js1228];
+            sum1230 += el;
         };
-        return sum983;
+        return sum1230;
     })() / l.length;
 };
 function meanLength() {
@@ -232,11 +235,11 @@ function meanLength() {
 };
 function tournament() {
     return (function () {
-        var collect984 = [];
+        var collect1231 = [];
         for (var i = 1; i <= tSize; i += 1) {
-            collect984["push"](randomElt(window.pop));
+            collect1231["push"](randomElt(window.pop));
         };
-        return collect984;
+        return collect1231;
     })().sort(fitSort)[0];
 };
 function popHelper(n) {
@@ -261,6 +264,26 @@ function evolve() {
         return popHelper(popSize - window.pop.length);
     }, throttle) : setTimeout(evolveHelper, throttle);
 };
+function mcmcHelper() {
+    if (running) {
+        var oldFit = window.pop[0]["fit"];
+        var newInd = evaluate(mutate(copyInd(window.pop[0])));
+        var newFit = newInd["fit"];
+        if (newFit < oldFit || Math.random() < oldFit / newFit && ((window.pop[1] == null || oldFit < window.pop[1]["fit"]) && (window.pop[1] = window.pop[0]) || true)) {
+            window.pop[0] = newInd;
+        };
+        return setTimeout(mcmcHelper, throttle);
+    };
+};
+function mcmc() {
+    if (window.pop[0] == null) {
+        window.pop[0] = evaluate(newInd());
+    };
+    window.pop.sort(fitSort).splice(1);
+    popSize = 1;
+    running = true;
+    return mcmcHelper();
+};
 function stats() {
     var scores = window.pop.sort(fitSort).map(function (it) {
         return it["fit"];
@@ -283,15 +306,15 @@ function showBest() {
     return best()["genome"].map(draw);
 };
 function getBest() {
-    var best985 = best();
+    var best1232 = best();
     var pre = "data:text/JSON;base64,";
-    var _js986 = [["url", img.src], ["evals", evals], ["tournament-size", tSize], ["population-size", popSize], ["max-length", softGenomeLength]];
-    var _js988 = _js986.length;
-    for (var _js987 = 0; _js987 < _js988; _js987 += 1) {
-        var _db989 = _js986[_js987];
-        var key = _db989[0];
-        var val = _db989[1];
-        best985[key] = val;
+    var _js1233 = [["url", img.src], ["evals", evals], ["tournament-size", tSize], ["population-size", popSize], ["max-length", softGenomeLength]];
+    var _js1235 = _js1233.length;
+    for (var _js1234 = 0; _js1234 < _js1235; _js1234 += 1) {
+        var _db1236 = _js1233[_js1234];
+        var key = _db1236[0];
+        var val = _db1236[1];
+        best1232[key] = val;
     };
-    return window.open(pre + btoa(JSON.stringify(best985)));
+    return window.open(pre + btoa(JSON.stringify(best1232)));
 };</script></body></html>
