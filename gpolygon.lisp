@@ -175,23 +175,17 @@
                      100)
                   (tweak-range (aref (getprop poly :color) pt) 255))))))
 
-(defun merge (a b)
-  (create color (getprop a :color)
-          vertices (append (getprop a :vertices) (getprop b :vertices))))
-
 (defun mutate (ind)
   (let ((i (random-ind (chain ind :genome))))
-    (case (random-elt '(:delete :merge :insert :copy :tweak :swap))
+    (case (random-elt '(:delete :insert :tweak :swap))
       (:delete (chain ind :genome (splice i 1)))
-      (:merge (let ((g (getprop ind :genome))
-                    (j (random (- (length (getprop ind :genome)) 1))))
-                (chain g (splice j 1 (merge (aref g j) (aref g (+ 1 j)))))))
       (:insert (chain ind :genome (splice i 0 (poly))))
-      (:copy (chain ind :genome (splice (random-ind (chain ind :genome)) 0
-                                        (copy-poly (getprop ind :genome i)))))
       (:tweak (tweak-poly (getprop ind :genome i)))
-      (:swap (let ((cp (copy-poly (random-elt (chain ind :genome)))))
-               (chain ind :genome (splice i 1 cp))))))
+      (:swap (let* ((j (random-ind (chain ind :genome)))
+                    (cp (copy-poly (getprop ind :genome i)))
+                    (pc (copy-poly (getprop ind :genome j))))
+               (chain ind :genome (splice i 1 pc))
+               (chain ind :genome (splice j 1 cp))))))
   ind)
 
 
