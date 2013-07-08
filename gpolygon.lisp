@@ -176,16 +176,17 @@
                   (tweak-range (aref (getprop poly :color) pt) 255))))))
 
 (defun mutate (ind)
-  (let ((i (random-ind (chain ind :genome))))
+  (let* ((g (chain ind :genome))
+         (i (random-ind g)))
     (case (random-elt '(:delete :insert :tweak :swap))
-      (:delete (chain ind :genome (splice i 1)))
-      (:insert (chain ind :genome (splice i 0 (poly))))
-      (:tweak (tweak-poly (getprop ind :genome i)))
-      (:swap (let* ((j (random-ind (chain ind :genome)))
-                    (cp (copy-poly (getprop ind :genome i)))
-                    (pc (copy-poly (getprop ind :genome j))))
-               (chain ind :genome (splice i 1 pc))
-               (chain ind :genome (splice j 1 cp))))))
+      (:delete (when (> (length g) 1) (chain g (splice i 1))))
+      (:insert (chain g (splice i 0 (poly))))
+      (:tweak (tweak-poly (aref g i)))
+      (:swap (let* ((j (random-ind g))
+                    (cp (copy-poly (aref g i)))
+                    (pc (copy-poly (aref g j))))
+               (chain g (splice i 1 pc))
+               (chain g (splice j 1 cp))))))
   ind)
 
 
