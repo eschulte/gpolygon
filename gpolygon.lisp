@@ -214,7 +214,7 @@
     (unless (null new-size)
       (setf pop-size (parse-int new-size 10))
       (if (> old-size pop-size)
-          (chain window pop (splice pop-size (- old-size pop-size)))
+          (chain window pop (splice pop-size))
           (loop :for i :from 0 :below (- pop-size old-size) :do
              (chain window pop (push (evaluate (new-ind)))))))))
 
