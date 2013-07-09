@@ -2,7 +2,7 @@ GPolygon
 
 A tiny imlementation of a steady state genetic algorithm (GA) which
 evolves series of colored polygons to approximate a target image
-(mimicking [1]).  The entire project is encoded in <300 LOC of Common
+(mimicking [1]).  The entire project is encoded in ~300 LOC of Common
 Lisp (CL).  This includes serving the main page and images using the
 hunchentoot [2] CL webserver, and generating ~300LOC of HTML and
 JavaScript through the cl-who [3] and Parenscript [4] libraries.
