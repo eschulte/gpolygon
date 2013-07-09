@@ -49,36 +49,41 @@
           (poly (chain (regex "polygon=([^&#]*)") (exec (@ location search)))))
       (if (null image)
           (write "target" "click to set image")
-          (set-image (aref image 1)))
+          (set-image (decode-u-r-i-component (aref image 1))))
       (if (null poly)
           (write "current" "click to get polygons")
-          (alert (aref poly 1))))))
+          (load-polygon (decode-u-r-i-component (aref poly 1)))))))
 
 ;; Image server must have enabled CORS -- http://enable-cors.org/
-(defun set-image (&optional url)
+(defun set-image (&optional url cb)
   (let ((canvas (chain document (get-element-by-id "target")))
         (current (chain document (get-element-by-id "current"))))
-    (setf (@ img onload)
+    (setf img (new (-image))
+          (@ img onload)
           (lambda ()
             (setf
              (@ canvas width) (@ img width) (@ canvas height) (@ img height)
              (@ current width) (@ img width) (@ current height) (@ img height)
              width (@ img width) height (@ img height))
-            (chain canvas (get-context "2d") (draw-image img 0 0)))
+            (chain canvas (get-context "2d") (draw-image img 0 0))
+            (when cb (funcall cb)))
           (@ img cross-origin) "anonymous" ;; w/o this display any, but no data
           (@ img src)
           (or url (prompt "enter an image url (from a CORS enabled server)"
                           "./images/mona-lisa.png")))))
 
-(defun load-polygon ()
-  (let ((data (prompt "paste in the JSON of a polygon")))
+(defun load-polygon (data)
+  (let ((data (or data (prompt "paste in the JSON of a polygon"))))
     (unless (null data)
       (let ((individual (chain -j-s-o-n (parse data))))
-        (evaluate individual)
-        ;; show the individual
-        (stop) (clear) (chain individual :genome (map draw))
-        ;; incorporate into the population
-        (chain window pop (sort fit-sort) (splice -1 1 individual))))))
+        (set-image
+         (@ individual :url)
+         (lambda ()
+           (evaluate individual)
+           ;; show the individual
+           (stop) (clear) (chain individual :genome (map draw))
+           ;; incorporate into the population
+           (chain window pop (sort fit-sort) (splice -1 1 individual))))))))
 
 (defun clear ()
   (chain document (get-element-by-id "current") (get-context "2d")
