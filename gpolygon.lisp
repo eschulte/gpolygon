@@ -37,6 +37,13 @@
 
 
 ;;; JavaScript
+(defmacro randomly (&rest body)
+  (let ((rnd (ps-gensym "rand")) (lng (length body)) (cnt 0))
+    `(let ((,rnd (random)))
+       (cond ,@(mapcar (lambda (f) (incf cnt) `((< ,rnd ,(/ cnt lng)) ,@f))
+                       (butlast body))
+             (t ,@(car (last body)))))))
+
 (defvar img (new (-image))) (defvar width nil) (defvar height nil)
 
 (defun setup ()
@@ -161,43 +168,32 @@
                     (chain (getprop b :genome) (slice pt) (map copy-poly))))))
 
 (defun tweak-range (n range)
-  ;; bigger or smaller
-  (if (> (random) 0.5)
-      ;; bigger
-      (min (+ n (random (/ n 8))) range)
-      ;; smaller
-      (max (- n (random (/ n 8))) 0)))
+  (randomly ((min (+ n (random (/ n 8))) range)) ; bigger
+            ((max (- n (random (/ n 8))) 0))))   ; smaller
 
 ;; seems to work better w/o color tweaks
 (defun tweak-poly (poly)
-  (if (> (random) 0.5)
-      ;; verticies
-      (let ((vert (random-elt (getprop poly :vertices))))
-        (if (> (random) 0.5)
-            ;; width
-            (setf (aref vert 0) (tweak-range (aref vert 0) width))
-            ;; height
-            (setf (aref vert 1) (tweak-range (aref vert 1) height))))
-      ;; color
-      (let ((pt (random 4)))
-        (setf (aref (getprop poly :color) 4)
-              (if (= pt 3) 
-                  (/ (tweak-range (* 100 (aref (getprop poly :color) pt)) 100)
-                     100)
-                  (tweak-range (aref (getprop poly :color) pt) 255))))))
+  (randomly
+   ((let ((vert (random-elt (getprop poly :vertices))))
+      (randomly ((setf (aref vert 0) (tweak-range (aref vert 0) width)))
+                ((setf (aref vert 1) (tweak-range (aref vert 1) height))))))
+   ((let ((pt (random 4)))
+      (setf (aref (getprop poly :color) 4)
+            (if (= pt 3) 
+                (/ (tweak-range (* 100 (aref (getprop poly :color) pt)) 100)
+                   100)
+                (tweak-range (aref (getprop poly :color) pt) 255)))))))
 
 (defun mutate (ind)
-  (let* ((g (chain ind :genome))
-         (i (random-ind g)))
-    (case (random-elt '(:delete :insert :tweak :swap))
-      (:delete (when (> (length g) 1) (chain g (splice i 1))))
-      (:insert (chain g (splice i 0 (poly))))
-      (:tweak (tweak-poly (aref g i)))
-      (:swap (let* ((j (random-ind g))
-                    (cp (copy-poly (aref g i)))
-                    (pc (copy-poly (aref g j))))
-               (chain g (splice i 1 pc))
-               (chain g (splice j 1 cp))))))
+  (let* ((g (chain ind :genome)) (i (random-ind g)))
+    (randomly ((when (> (length g) 1) (chain g (splice i 1)))) ; delete
+              ((chain g (splice i 0 (poly))))                  ; insert
+              ((tweak-poly (aref g i)))                        ; tweak
+              ((let* ((j (random-ind g))                      ; swap
+                      (cp (copy-poly (aref g i)))
+                      (pc (copy-poly (aref g j))))
+                 (chain g (splice i 1 pc))
+                 (chain g (splice j 1 cp))))))
   ind)
 
 
@@ -252,9 +248,9 @@
   (when running
     (chain window pop (sort fit-sort)
            (splice -1 1 (evaluate
-                         (mutate (if (= 0 (random 2))
-                                     (copy-ind (tournament))
-                                     (crossover (tournament) (tournament)))))))
+                         (mutate (randomly
+                                  ((copy-ind (tournament)))
+                                  ((crossover (tournament) (tournament))))))))
     (set-timeout evolve-helper throttle)))
 (defun evolve ()
   (setf running t)
