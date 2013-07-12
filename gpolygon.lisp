@@ -140,9 +140,15 @@
   (list (random 256) (random 256) (random 256) (/ (random 100) 100)))
 
 (defun poly ()
-  (create color (random-color)
-          vertices (loop :for i :from 0 :to (random max-poly-length)
-                      :collect (point))))
+  (create color (random-color) vertices
+          (randomly
+           ((loop :for i :from 0 :to (random max-poly-length) :collect (point)))
+           ((let ((orig (point)) (range (* (random) (min width height))))
+              (flet ((flex (pt b)
+                       (max 0 (min (+ pt (- (* 2 (random) range) range)) b))))
+                (loop :for i :from 0 :to (random max-poly-length) :collect
+                   (array (flex (aref orig 1) width)
+                          (flex (aref orig 1) height)))))))))
 
 (defun genome ()
   (loop :for i :from 0 :to (random max-genome-start-length) :collect (poly)))
