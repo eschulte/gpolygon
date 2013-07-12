@@ -21,7 +21,7 @@
   (macrolet ((link (s)
                `(htm (:a :href "#" :onclick (ps* (list ,s)) (str ,s)) " ")))
     (let ((actions '(evolve mcmc stop show-best load-polygon))
-          (params '(max-length population-size tournament-size delay)))
+          (params '(max-length max-verts pop-size tournament-size delay)))
       (with-html-output-to-string (s)
         (:html (str "<!-- Copyright (C) Eric Schulte 2013, License GPLV3 -->")
          (:head (:title "evolve polygons to match images"))
@@ -206,7 +206,7 @@
 ;; Populations
 (defvar running t)
 (defvar pop (make-array))
-(defvar pop-size 128)
+(defvar p-size 128)
 (defvar t-size 2)
 (defvar throttle 2 "Delay in milliseconds to allow display to update.")
 
@@ -216,14 +216,18 @@
       (setf soft-genome-length (parse-int new-max 10))
       (chain window pop (map evaluate)))))
 
-(defun population-size ()
-  (let ((old-size pop-size)
-        (new-size (prompt "population size:" pop-size)))
+(defun max-verts ()
+  (let ((max (prompt "maximum number of polygon vertices:" max-poly-length)))
+    (unless (null max) (setf max-poly-length max))))
+
+(defun pop-size ()
+  (let ((old-size p-size)
+        (new-size (prompt "population size:" p-size)))
     (unless (null new-size)
-      (setf pop-size (parse-int new-size 10))
-      (if (> old-size pop-size)
-          (chain window pop (splice pop-size))
-          (loop :for i :from 0 :below (- pop-size old-size) :do
+      (setf p-size (parse-int new-size 10))
+      (if (> old-size p-size)
+          (chain window pop (splice p-size))
+          (loop :for i :from 0 :below (- p-size old-size) :do
              (chain window pop (push (evaluate (new-ind)))))))))
 
 (defun tournament-size ()
@@ -260,9 +264,9 @@
     (set-timeout evolve-helper throttle)))
 (defun evolve ()
   (setf running t)
-  (if (> pop-size (length (chain window pop)))
+  (if (> p-size (length (chain window pop)))
       ;; populate, then evolve
-      (set-timeout (lambda () (pop-helper (- pop-size (length (chain window pop)))))
+      (set-timeout (lambda () (pop-helper (- p-size (length (chain window pop)))))
                    throttle)
       ;; just evolve
       (set-timeout evolve-helper throttle)))
@@ -283,7 +287,7 @@
 (defun mcmc ()
   (when (null (chain window pop 0))
     (setf (chain window pop 0) (evaluate (new-ind))))
-  (chain window pop (sort fit-sort) (splice 1)) (setf pop-size 1)
+  (chain window pop (sort fit-sort) (splice 1)) (setf p-size 1)
   (setf running t) (mcmc-helper))
 
 (defun stats ()
@@ -303,7 +307,7 @@
   (let ((best (best)) (pre "data:text/JSON;base64,"))
     (loop :for (key val) :in ([] (:url img.src) (:evals evals)
                                  (:tournament-size t-size)
-                                 (:population-size pop-size)
+                                 (:pop-size p-size) (:max-verts max-poly-length)
                                  (:max-length soft-genome-length))
        :do (setf (getprop best key) val))
     (chain window (open (+ pre (btoa (chain -j-s-o-n (stringify best))))))))
