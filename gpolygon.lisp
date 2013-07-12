@@ -21,7 +21,7 @@
   (macrolet ((link (s)
                `(htm (:a :href "#" :onclick (ps* (list ,s)) (str ,s)) " ")))
     (let ((actions '(evolve mcmc stop show-best load-polygon))
-          (params '(max-length population-size tournament-size delay)))
+          (params '(max-length max-verts pop-size tournament-size delay)))
       (with-html-output-to-string (s)
         (:html (str "<!-- Copyright (C) Eric Schulte 2013, License GPLV3 -->")
          (:head (:title "evolve polygons to match images"))
@@ -37,6 +37,13 @@
 
 
 ;;; JavaScript
+(defmacro randomly (&rest body)
+  (let ((rnd (ps-gensym "rand")) (lng (length body)) (cnt 0))
+    `(let ((,rnd (random)))
+       (cond ,@(mapcar (lambda (f) (incf cnt) `((< ,rnd ,(/ cnt lng)) ,@f))
+                       (butlast body))
+             (t ,@(car (last body)))))))
+
 (defvar img (new (-image))) (defvar width nil) (defvar height nil)
 
 (defun setup ()
@@ -133,9 +140,15 @@
   (list (random 256) (random 256) (random 256) (/ (random 100) 100)))
 
 (defun poly ()
-  (create color (random-color)
-          vertices (loop :for i :from 0 :to (random max-poly-length)
-                      :collect (point))))
+  (create color (random-color) vertices
+          (randomly
+           ((loop :for i :from 0 :to (random max-poly-length) :collect (point)))
+           ((let ((orig (point)) (range (* (random) (min width height))))
+              (flet ((flex (pt b)
+                       (max 0 (min (+ pt (- (* 2 (random) range) range)) b))))
+                (loop :for i :from 0 :to (random max-poly-length) :collect
+                   (array (flex (aref orig 1) width)
+                          (flex (aref orig 1) height)))))))))
 
 (defun genome ()
   (loop :for i :from 0 :to (random max-genome-start-length) :collect (poly)))
@@ -161,50 +174,39 @@
                     (chain (getprop b :genome) (slice pt) (map copy-poly))))))
 
 (defun tweak-range (n range)
-  ;; bigger or smaller
-  (if (> (random) 0.5)
-      ;; bigger
-      (min (+ n (random (/ n 8))) range)
-      ;; smaller
-      (max (- n (random (/ n 8))) 0)))
+  (randomly ((min (+ n (random (/ n 8))) range)) ; bigger
+            ((max (- n (random (/ n 8))) 0))))   ; smaller
 
 ;; seems to work better w/o color tweaks
 (defun tweak-poly (poly)
-  (if (> (random) 0.5)
-      ;; verticies
-      (let ((vert (random-elt (getprop poly :vertices))))
-        (if (> (random) 0.5)
-            ;; width
-            (setf (aref vert 0) (tweak-range (aref vert 0) width))
-            ;; height
-            (setf (aref vert 1) (tweak-range (aref vert 1) height))))
-      ;; color
-      (let ((pt (random 4)))
-        (setf (aref (getprop poly :color) 4)
-              (if (= pt 3) 
-                  (/ (tweak-range (* 100 (aref (getprop poly :color) pt)) 100)
-                     100)
-                  (tweak-range (aref (getprop poly :color) pt) 255))))))
+  (randomly
+   ((let ((vert (random-elt (getprop poly :vertices))))
+      (randomly ((setf (aref vert 0) (tweak-range (aref vert 0) width)))
+                ((setf (aref vert 1) (tweak-range (aref vert 1) height))))))
+   ((let ((pt (random 4)))
+      (setf (aref (getprop poly :color) 4)
+            (if (= pt 3) 
+                (/ (tweak-range (* 100 (aref (getprop poly :color) pt)) 100)
+                   100)
+                (tweak-range (aref (getprop poly :color) pt) 255)))))))
 
 (defun mutate (ind)
-  (let* ((g (chain ind :genome))
-         (i (random-ind g)))
-    (case (random-elt '(:delete :insert :tweak :swap))
-      (:delete (when (> (length g) 1) (chain g (splice i 1))))
-      (:insert (chain g (splice i 0 (poly))))
-      (:tweak (tweak-poly (aref g i)))
-      (:swap (let* ((j (random-ind g))
-                    (cp (copy-poly (aref g i)))
-                    (pc (copy-poly (aref g j))))
-               (chain g (splice i 1 pc))
-               (chain g (splice j 1 cp))))))
+  (let* ((g (chain ind :genome)) (i (random-ind g)))
+    (randomly ((when (> (length g) 1) (chain g (splice i 1)))) ; delete
+              ((chain g (splice i 0 (poly))))                  ; insert
+              ((tweak-poly (aref g i)))                        ; tweak
+              ((let* ((j (random-ind g))                      ; swap
+                      (cp (copy-poly (aref g i)))
+                      (pc (copy-poly (aref g j))))
+                 (chain g (splice i 1 pc))
+                 (chain g (splice j 1 cp))))))
   ind)
 
 
 ;; Populations
 (defvar running t)
 (defvar pop (make-array))
-(defvar pop-size 128)
+(defvar p-size 128)
 (defvar t-size 2)
 (defvar throttle 2 "Delay in milliseconds to allow display to update.")
 
@@ -214,14 +216,18 @@
       (setf soft-genome-length (parse-int new-max 10))
       (chain window pop (map evaluate)))))
 
-(defun population-size ()
-  (let ((old-size pop-size)
-        (new-size (prompt "population size:" pop-size)))
+(defun max-verts ()
+  (let ((max (prompt "maximum number of polygon vertices:" max-poly-length)))
+    (unless (null max) (setf max-poly-length max))))
+
+(defun pop-size ()
+  (let ((old-size p-size)
+        (new-size (prompt "population size:" p-size)))
     (unless (null new-size)
-      (setf pop-size (parse-int new-size 10))
-      (if (> old-size pop-size)
-          (chain window pop (splice pop-size))
-          (loop :for i :from 0 :below (- pop-size old-size) :do
+      (setf p-size (parse-int new-size 10))
+      (if (> old-size p-size)
+          (chain window pop (splice p-size))
+          (loop :for i :from 0 :below (- p-size old-size) :do
              (chain window pop (push (evaluate (new-ind)))))))))
 
 (defun tournament-size ()
@@ -252,15 +258,15 @@
   (when running
     (chain window pop (sort fit-sort)
            (splice -1 1 (evaluate
-                         (mutate (if (= 0 (random 2))
-                                     (copy-ind (tournament))
-                                     (crossover (tournament) (tournament)))))))
+                         (mutate (randomly
+                                  ((copy-ind (tournament)))
+                                  ((crossover (tournament) (tournament))))))))
     (set-timeout evolve-helper throttle)))
 (defun evolve ()
   (setf running t)
-  (if (> pop-size (length (chain window pop)))
+  (if (> p-size (length (chain window pop)))
       ;; populate, then evolve
-      (set-timeout (lambda () (pop-helper (- pop-size (length (chain window pop)))))
+      (set-timeout (lambda () (pop-helper (- p-size (length (chain window pop)))))
                    throttle)
       ;; just evolve
       (set-timeout evolve-helper throttle)))
@@ -281,7 +287,7 @@
 (defun mcmc ()
   (when (null (chain window pop 0))
     (setf (chain window pop 0) (evaluate (new-ind))))
-  (chain window pop (sort fit-sort) (splice 1)) (setf pop-size 1)
+  (chain window pop (sort fit-sort) (splice 1)) (setf p-size 1)
   (setf running t) (mcmc-helper))
 
 (defun stats ()
@@ -301,7 +307,7 @@
   (let ((best (best)) (pre "data:text/JSON;base64,"))
     (loop :for (key val) :in ([] (:url img.src) (:evals evals)
                                  (:tournament-size t-size)
-                                 (:population-size pop-size)
+                                 (:pop-size p-size) (:max-verts max-poly-length)
                                  (:max-length soft-genome-length))
        :do (setf (getprop best key) val))
     (chain window (open (+ pre (btoa (chain -j-s-o-n (stringify best))))))))

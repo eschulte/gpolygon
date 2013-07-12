@@ -5,7 +5,7 @@ Notes                                                      -*- org -*-
 - https://developer.mozilla.org/en-US/docs/HTML/CORS_Enabled_Image
 - http://enable-cors.org/
 
-* Tasks [8/10]
+* Tasks [9/10]
 ** DONE remove random mutation operation
 ** DONE single point crossover
 ** DONE merge mutation operation
@@ -25,6 +25,9 @@ fitness = difference \times (/ (max soft-max-length length) soft-max-length)
 ** TODO better polygon size distribution
 ** DONE upload button
 allow display of individuals and insertion into the population
-** TODO images URLs and JSON strings from the URL
+** DONE images URLs and JSON strings from the URL
 Get the parameter from the URL.
 : new RegExp("image=([^&#]*)").exec(location.search)[1]
+
+This is working, but I guess many people don't want urls to be this
+long.
