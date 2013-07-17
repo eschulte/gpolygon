@@ -33,13 +33,16 @@ function setImage(url, cb) {
         canvas.getContext("2d").drawImage(img, 0, 0);
         return cb ? cb() : null;
     };
+    img.onerror = function () {
+        return alert("server at " + img.src + " does not support CORS");
+    };
     img.crossOrigin = "anonymous";
     return img.src = url || prompt("enter an image url (from a CORS enabled server)", "./images/mona-lisa.png");
 };
 function loadPolygon(data) {
-    var data716 = data || prompt("paste in the JSON of a polygon");
-    if (data716 != null) {
-        var individual = JSON.parse(data716);
+    var data27 = data || prompt("paste in the JSON of a polygon");
+    if (data27 != null) {
+        var individual = JSON.parse(data27);
         return setImage(individual["url"], function () {
             evaluate(individual);
             stop();
@@ -79,12 +82,12 @@ function score() {
     var dc = data("current");
     var dt = dc ? data("target") : null;
     return (function () {
-        var _js717 = dc.length;
-        var sum718 = 0;
-        for (var i = 0; i < _js717; i += 1) {
-            sum718 += Math.abs(dc[i] - dt[i]);
+        var _js28 = dc.length;
+        var sum29 = 0;
+        for (var i = 0; i < _js28; i += 1) {
+            sum29 += Math.abs(dc[i] - dt[i]);
         };
-        return sum718;
+        return sum29;
     })();
 };
 function addPoly() {
@@ -113,36 +116,36 @@ function randomColor() {
     return [Math.floor(256 * Math.random()), Math.floor(256 * Math.random()), Math.floor(256 * Math.random()), Math.floor(100 * Math.random()) / 100];
 };
 function poly() {
-    var RAND719;
+    var RAND30;
     var orig;
     var range;
     var flex;
-    return { color : randomColor(), vertices : (RAND719 = Math.random(), RAND719 < 0.5 ? (function () {
-        var _js720 = Math.floor(maxPolyLength * Math.random());
-        var collect721 = [];
-        for (var i = 0; i <= _js720; i += 1) {
-            collect721["push"](point());
+    return { color : randomColor(), vertices : (RAND30 = Math.random(), RAND30 < 0.5 ? (function () {
+        var _js31 = Math.floor(maxPolyLength * Math.random());
+        var collect32 = [];
+        for (var i = 0; i <= _js31; i += 1) {
+            collect32["push"](point());
         };
-        return collect721;
+        return collect32;
     })() : (orig = point(), range = Math.random() * Math.min(width, height), (flex = function (pt, b) {
         return Math.max(0, Math.min(pt + (2 * Math.random() * range - range), b));
     }, (function () {
-        var _js722 = Math.floor(maxPolyLength * Math.random());
-        var collect723 = [];
-        for (var i = 0; i <= _js722; i += 1) {
-            collect723["push"]([flex(orig[1], width), flex(orig[1], height)]);
+        var _js33 = Math.floor(maxPolyLength * Math.random());
+        var collect34 = [];
+        for (var i = 0; i <= _js33; i += 1) {
+            collect34["push"]([flex(orig[1], width), flex(orig[1], height)]);
         };
-        return collect723;
+        return collect34;
     })()))) };
 };
 function genome() {
     return (function () {
-        var _js724 = Math.floor(maxGenomeStartLength * Math.random());
-        var collect725 = [];
-        for (var i = 0; i <= _js724; i += 1) {
-            collect725["push"](poly());
+        var _js35 = Math.floor(maxGenomeStartLength * Math.random());
+        var collect36 = [];
+        for (var i = 0; i <= _js35; i += 1) {
+            collect36["push"](poly());
         };
-        return collect725;
+        return collect36;
     })();
 };
 function newInd() {
@@ -168,19 +171,19 @@ function crossover(a, b) {
     return { fit : null, genome : a["genome"].slice(0, pt).map(copyPoly).concat(b["genome"].slice(pt).map(copyPoly)) };
 };
 function tweakRange(n, range) {
-    var RAND726 = Math.random();
-    if (RAND726 < 0.5) {
+    var RAND37 = Math.random();
+    if (RAND37 < 0.5) {
         return Math.min(n + Math.floor((n / 8) * Math.random()), range);
     } else {
         return Math.max(n - Math.floor((n / 8) * Math.random()), 0);
     };
 };
 function tweakPoly(poly) {
-    var RAND727 = Math.random();
-    if (RAND727 < 0.5) {
+    var RAND38 = Math.random();
+    if (RAND38 < 0.5) {
         var vert = randomElt(poly["vertices"]);
-        var RAND728 = Math.random();
-        if (RAND728 < 0.5) {
+        var RAND39 = Math.random();
+        if (RAND39 < 0.5) {
             return vert[0] = tweakRange(vert[0], width);
         } else {
             return vert[1] = tweakRange(vert[1], height);
@@ -193,14 +196,14 @@ function tweakPoly(poly) {
 function mutate(ind) {
     var g = ind["genome"];
     var i = randomInd(g);
-    var RAND729 = Math.random();
-    if (RAND729 < 0.25) {
+    var RAND40 = Math.random();
+    if (RAND40 < 0.25) {
         if (g.length > 1) {
             g.splice(i, 1);
         };
-    } else if (RAND729 < 0.5) {
+    } else if (RAND40 < 0.5) {
         g.splice(i, 0, poly());
-    } else if (RAND729 < 0.75) {
+    } else if (RAND40 < 0.75) {
         tweakPoly(g[i]);
     } else {
         var j = randomInd(g);
@@ -235,8 +238,8 @@ function popSize() {
         if (oldSize > pSize) {
             return window.pop.splice(pSize);
         } else {
-            var _js732 = pSize - oldSize;
-            for (var i = 0; i < _js732; i += 1) {
+            var _js43 = pSize - oldSize;
+            for (var i = 0; i < _js43; i += 1) {
                 window.pop.push(evaluate(newInd()));
             };
         };
@@ -255,13 +258,13 @@ function fitSort(a, b) {
 };
 function mean(l) {
     return (function () {
-        var _js734 = l.length;
-        var sum735 = 0;
-        for (var _js733 = 0; _js733 < _js734; _js733 += 1) {
-            var el = l[_js733];
-            sum735 += el;
+        var _js45 = l.length;
+        var sum46 = 0;
+        for (var _js44 = 0; _js44 < _js45; _js44 += 1) {
+            var el = l[_js44];
+            sum46 += el;
         };
-        return sum735;
+        return sum46;
     })() / l.length;
 };
 function meanLength() {
@@ -271,11 +274,11 @@ function meanLength() {
 };
 function tournament() {
     return (function () {
-        var collect736 = [];
+        var collect47 = [];
         for (var i = 1; i <= tSize; i += 1) {
-            collect736["push"](randomElt(window.pop));
+            collect47["push"](randomElt(window.pop));
         };
-        return collect736;
+        return collect47;
     })().sort(fitSort)[0];
 };
 function popHelper(n) {
@@ -289,9 +292,9 @@ function popHelper(n) {
     };
 };
 function evolveHelper() {
-    var RAND737;
+    var RAND48;
     if (running) {
-        window.pop.sort(fitSort).splice(-1, 1, evaluate(mutate((RAND737 = Math.random(), RAND737 < 0.5 ? copyInd(tournament()) : crossover(tournament(), tournament())))));
+        window.pop.sort(fitSort).splice(-1, 1, evaluate(mutate((RAND48 = Math.random(), RAND48 < 0.5 ? copyInd(tournament()) : crossover(tournament(), tournament())))));
         return setTimeout(evolveHelper, throttle);
     };
 };
@@ -343,15 +346,15 @@ function showBest() {
     return best()["genome"].map(draw);
 };
 function getBest() {
-    var best738 = best();
+    var best49 = best();
     var pre = "data:text/JSON;base64,";
-    var _js739 = [["url", img.src], ["evals", evals], ["tournament-size", tSize], ["pop-size", pSize], ["max-verts", maxPolyLength], ["max-length", softGenomeLength]];
-    var _js741 = _js739.length;
-    for (var _js740 = 0; _js740 < _js741; _js740 += 1) {
-        var _db742 = _js739[_js740];
-        var key = _db742[0];
-        var val = _db742[1];
-        best738[key] = val;
+    var _js50 = [["url", img.src], ["evals", evals], ["tournament-size", tSize], ["pop-size", pSize], ["max-verts", maxPolyLength], ["max-length", softGenomeLength]];
+    var _js52 = _js50.length;
+    for (var _js51 = 0; _js51 < _js52; _js51 += 1) {
+        var _db53 = _js50[_js51];
+        var key = _db53[0];
+        var val = _db53[1];
+        best49[key] = val;
     };
-    return window.open(pre + btoa(JSON.stringify(best738)));
+    return window.open(pre + btoa(JSON.stringify(best49)));
 };</script></body></html>
