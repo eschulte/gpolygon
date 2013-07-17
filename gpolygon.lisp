@@ -74,6 +74,9 @@
              width (@ img width) height (@ img height))
             (chain canvas (get-context "2d") (draw-image img 0 0))
             (when cb (funcall cb)))
+          (@ img onerror)
+          (lambda ()
+            (alert (+ "server at " (@ img src) " does not support CORS")))
           (@ img cross-origin) "anonymous" ;; w/o this display any, but no data
           (@ img src)
           (or url (prompt "enter an image url (from a CORS enabled server)"
